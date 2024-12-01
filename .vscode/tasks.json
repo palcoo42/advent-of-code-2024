@@ -4,7 +4,7 @@
 		{
 			"type": "cargo",
 			"command": "run",
-			"args": [ "--package", "" ],
+			"args": [ "--package", "day_1_historian_hysteria" ],
 			"problemMatcher": [
 				"$rustc"
 			],
@@ -18,7 +18,7 @@
 		{
 			"type": "cargo",
 			"command": "test",
-			"args": [ "--package", "" ],
+			"args": [ "--package", "day_1_historian_hysteria" ],
 			"problemMatcher": [
 				"$rustc"
 			],
