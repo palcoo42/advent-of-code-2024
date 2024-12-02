@@ -9,11 +9,15 @@ impl Report {
     }
 
     pub fn is_safe(&self) -> bool {
-        match self.internal[0].cmp(&self.internal[1]) {
+        Self::check_safeness(&self.internal)
+    }
+
+    fn check_safeness(numbers: &[usize]) -> bool {
+        match numbers[0].cmp(&numbers[1]) {
             std::cmp::Ordering::Equal => false,
-            std::cmp::Ordering::Less => Self::compare_less(&self.internal),
+            std::cmp::Ordering::Less => Self::compare_less(numbers),
             std::cmp::Ordering::Greater => {
-                Self::compare_less(&self.internal.iter().rev().copied().collect::<Vec<_>>())
+                Self::compare_less(&numbers.iter().rev().copied().collect::<Vec<_>>())
             }
         }
     }
@@ -27,6 +31,24 @@ impl Report {
         }
 
         true
+    }
+
+    pub fn is_safe_problem_dampener(&self) -> bool {
+        if Self::check_safeness(&self.internal) {
+            return true;
+        }
+
+        // Investigate one by one by removing a single number (problem dampener)
+        for i in 0..self.internal.len() {
+            let mut numbers = self.internal.clone();
+            numbers.remove(i);
+
+            if Self::check_safeness(&numbers) {
+                return true;
+            }
+        }
+
+        false
     }
 }
 
@@ -42,5 +64,15 @@ mod tests {
         assert!(!Report::new(vec![1, 3, 2, 4, 5]).is_safe());
         assert!(!Report::new(vec![8, 6, 4, 4, 1]).is_safe());
         assert!(Report::new(vec![1, 3, 6, 7, 9]).is_safe());
+    }
+
+    #[test]
+    pub fn test_is_safe_problem_dampener() {
+        // assert!(Report::new(vec![7, 6, 4, 2, 1]).is_safe_problem_dampener());
+        // assert!(!Report::new(vec![1, 2, 7, 8, 9]).is_safe_problem_dampener());
+        // assert!(!Report::new(vec![9, 7, 6, 2, 1]).is_safe_problem_dampener());
+        assert!(Report::new(vec![1, 3, 2, 4, 5]).is_safe_problem_dampener());
+        // assert!(Report::new(vec![8, 6, 4, 4, 1]).is_safe_problem_dampener());
+        // assert!(Report::new(vec![1, 3, 6, 7, 9]).is_safe_problem_dampener());
     }
 }

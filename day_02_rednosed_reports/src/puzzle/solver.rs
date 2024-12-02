@@ -27,10 +27,17 @@ impl PuzzleSolver for Solver {
 
     fn part_1(&self) -> SolutionResult {
         let safe_reports_count = self.reports.iter().filter(|&r| r.is_safe()).count();
+
         Ok(safe_reports_count.to_string())
     }
 
     fn part_2(&self) -> SolutionResult {
-        Ok(String::from("not solved"))
+        let safe_reports_count = self
+            .reports
+            .iter()
+            .filter(|&r| r.is_safe_problem_dampener())
+            .count();
+
+        Ok(safe_reports_count.to_string())
     }
 }
