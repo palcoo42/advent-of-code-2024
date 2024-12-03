@@ -9,40 +9,58 @@ pub struct Parser {}
 
 impl Parser {
     pub fn parse_lines(lines: &[&str]) -> Result<Vec<Instruction>, PuzzleError> {
-        Ok(lines.iter().map(|&line| Instruction::new(line)).collect())
+        let mut instructions = Vec::new();
+
+        for line in lines {
+            let mut line_instructions = Self::decode_instructions(line)?;
+            instructions.append(&mut line_instructions);
+        }
+
+        Ok(instructions)
     }
 
-    pub fn decode_mul(memory: &str) -> Result<Vec<(usize, usize)>, PuzzleError> {
+    pub fn decode_instructions(line: &str) -> Result<Vec<Instruction>, PuzzleError> {
         static RE: LazyLock<Regex> = LazyLock::new(|| {
-            Regex::new(r"mul\((\d+),(\d+)\)").expect("Failed to create regex 'mul'")
+            Regex::new(r"(?P<mul>mul\((?P<first>\d+),(?P<second>\d+)\))|(?P<do_not>don't\(\))|(?P<do>do\(\))")
+                .expect("Failed to create regex 'mul'")
         });
 
-        let mut multiplies = Vec::new();
+        let instructions = RE
+            .captures_iter(line)
+            .filter_map(|capture| {
+                if capture.name("mul").is_some() {
+                    let first = capture["first"]
+                        .parse::<usize>()
+                        .map_err(|err| {
+                            PuzzleError::InvalidContentError(format!(
+                                "Failed to parse 1st number '{}' to usize with an error '{}'",
+                                &capture[1], err
+                            ))
+                        })
+                        .ok()?;
 
-        for capture in RE.captures_iter(memory) {
-            let first = capture[1].parse::<usize>().map_err(|err| {
-                PuzzleError::InvalidContentError(format!(
-                    "Failed to parse 1st number '{}' to usize with an error '{}'",
-                    &capture[1], err
-                ))
-            })?;
+                    let second = capture["second"]
+                        .parse::<usize>()
+                        .map_err(|err| {
+                            PuzzleError::InvalidContentError(format!(
+                                "Failed to parse 2nd number '{}' to usize with an error '{}'",
+                                &capture[2], err
+                            ))
+                        })
+                        .ok()?;
 
-            let second = capture[2].parse::<usize>().map_err(|err| {
-                PuzzleError::InvalidContentError(format!(
-                    "Failed to parse 2nd number '{}' to usize with an error '{}'",
-                    &capture[2], err
-                ))
-            })?;
+                    Some(Instruction::Multiply(first, second))
+                } else if capture.name("do_not").is_some() {
+                    Some(Instruction::DoNot)
+                } else if capture.name("do").is_some() {
+                    Some(Instruction::Do)
+                } else {
+                    None
+                }
+            })
+            .collect();
 
-            multiplies.push((first, second));
-        }
-
-        match multiplies.is_empty() {
-            false => Ok(multiplies),
-            true => Err(PuzzleError::InvalidContentError(String::from(
-                "Failed to decode instruction to mul",
-            ))),
-        }
+        Ok(instructions)
     }
 }
 
@@ -51,12 +69,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_decode_mul() {
-        let result = Parser::decode_mul(
-            "xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))",
+    fn test_decode_instructions() {
+        let result = Parser::decode_instructions(
+            "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))",
         );
 
         assert!(result.is_ok(), "Result: {:?}", result);
-        assert_eq!(result.unwrap(), vec![(2, 4), (5, 5), (11, 8), (8, 5)]);
+        assert_eq!(
+            result.unwrap(),
+            vec![
+                Instruction::Multiply(2, 4),
+                Instruction::DoNot,
+                Instruction::Multiply(5, 5),
+                Instruction::Multiply(11, 8),
+                Instruction::Do,
+                Instruction::Multiply(8, 5)
+            ]
+        );
     }
 }
