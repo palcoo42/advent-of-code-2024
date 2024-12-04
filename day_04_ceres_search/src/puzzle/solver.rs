@@ -26,11 +26,12 @@ impl PuzzleSolver for Solver {
     }
 
     fn part_1(&self) -> SolutionResult {
-        let count = self.grid.find_word_count("XMAS");
+        let count = self.grid.word_count("XMAS");
         Ok(count.to_string())
     }
 
     fn part_2(&self) -> SolutionResult {
-        Ok(String::from("not solved"))
+        let count = self.grid.xmas_count();
+        Ok(count.to_string())
     }
 }

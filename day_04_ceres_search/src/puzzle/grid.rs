@@ -19,7 +19,7 @@ impl Grid {
         Self { internal }
     }
 
-    pub fn find_word_count(&self, word: &str) -> usize {
+    pub fn word_count(&self, word: &str) -> usize {
         let mut count = 0;
 
         for (row_idx, row) in self.internal.iter().enumerate() {
@@ -118,14 +118,57 @@ impl Grid {
         {
             text.push(self.internal[row_index as usize][column_index as usize]);
 
-            row_index = row_index as isize + row_diff;
-            column_index = column_index as isize + col_diff;
+            row_index += row_diff;
+            column_index += col_diff;
         }
 
         match text.len() == word_len {
             true => Some(text),
             false => None,
         }
+    }
+
+    pub fn xmas_count(&self) -> usize {
+        let mut count = 0;
+
+        for (row_idx, row) in self.internal.iter().enumerate() {
+            for (col_idx, character) in row.iter().enumerate() {
+                if character != &'A' {
+                    continue;
+                }
+
+                // We have 'A' pattern - check for valid X-MAS
+                if self.is_xmas_pattern(row_idx, col_idx) {
+                    count += 1;
+                }
+            }
+        }
+
+        count
+    }
+
+    fn is_xmas_pattern(&self, row_idx: usize, col_idx: usize) -> bool {
+        // Check if we have enough space in left and right A is always in he middle
+        if row_idx == 0
+            || row_idx == self.internal.len() - 1
+            || col_idx == 0
+            || col_idx == self.internal[row_idx].len() - 1
+        {
+            return false;
+        }
+
+        // We have enough space, find characters in corners
+        let left_up = self.internal[row_idx - 1][col_idx - 1];
+        let left_down = self.internal[row_idx + 1][col_idx - 1];
+        let right_up = self.internal[row_idx - 1][col_idx + 1];
+        let right_down = self.internal[row_idx + 1][col_idx + 1];
+
+        let left_diagonal =
+            (left_up == 'M' && right_down == 'S') || (left_up == 'S' && right_down == 'M');
+        let right_diagonal =
+            (left_down == 'M' && right_up == 'S') || (left_down == 'S' && right_up == 'M');
+
+        left_diagonal && right_diagonal
     }
 }
 
@@ -298,8 +341,33 @@ mod tests {
     }
 
     #[test]
-    fn test_find_word_count() {
+    fn test_word_count() {
         let grid = create_grid();
-        assert_eq!(grid.find_word_count("XMAS"), 18);
+        assert_eq!(grid.word_count("XMAS"), 18);
+    }
+
+    #[test]
+    fn test_is_xmas_pattern() {
+        let grid = create_grid();
+        assert!(grid.is_xmas_pattern(1, 2));
+        assert!(grid.is_xmas_pattern(2, 6));
+        assert!(grid.is_xmas_pattern(2, 7));
+        assert!(grid.is_xmas_pattern(3, 2));
+        assert!(grid.is_xmas_pattern(3, 4));
+        assert!(grid.is_xmas_pattern(7, 1));
+        assert!(grid.is_xmas_pattern(7, 3));
+        assert!(grid.is_xmas_pattern(7, 5));
+        assert!(grid.is_xmas_pattern(7, 7));
+
+        assert!(!grid.is_xmas_pattern(0, 0));
+        assert!(!grid.is_xmas_pattern(0, 9));
+        assert!(!grid.is_xmas_pattern(9, 0));
+        assert!(!grid.is_xmas_pattern(9, 0));
+    }
+
+    #[test]
+    fn test_xmas_count() {
+        let grid = create_grid();
+        assert_eq!(grid.xmas_count(), 9);
     }
 }
