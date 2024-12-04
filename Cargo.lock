@@ -73,6 +73,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "day_04_ceres_search"
+version = "0.1.0"
+dependencies = [
+ "advent-of-code",
+]
+
+[[package]]
 name = "day_1_historian_hysteria"
 version = "0.1.0"
 dependencies = [
