@@ -1,15 +1,8 @@
 use std::fmt::Display;
 
+#[derive(Default)]
 pub struct Grid {
     internal: Vec<Vec<char>>,
-}
-
-impl Default for Grid {
-    fn default() -> Self {
-        Self {
-            internal: Default::default(),
-        }
-    }
 }
 
 impl Grid {

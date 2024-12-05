@@ -1,0 +1,7 @@
+[package]
+name = "day_05_print_queue"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+advent-of-code = { git = "https://github.com/palcoo42/advent-of-code.git", tag = "2.0.0" }
