@@ -4,7 +4,7 @@
 		{
 			"type": "cargo",
 			"command": "run",
-			"args": [ "--package", "day_05_print_queue" ],
+			"args": [ "--package", "day_06_guard_gallivant" ],
 			"problemMatcher": [
 				"$rustc"
 			],
@@ -18,7 +18,7 @@
 		{
 			"type": "cargo",
 			"command": "test",
-			"args": [ "--package", "day_05_print_queue" ],
+			"args": [ "--package", "day_06_guard_gallivant" ],
 			"problemMatcher": [
 				"$rustc"
 			],

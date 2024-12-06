@@ -38,13 +38,16 @@ impl PrintQueue {
             .collect()
     }
 
-    fn is_page_in_order(&self, page: &Vec<usize>) -> bool {
+    fn is_page_in_order(&self, page: &[usize]) -> bool {
         for index in 1..page.len() {
             if let Some(later_numbers) = self.orders.get(&page[index]) {
-                for previous_index in 0..index {
-                    if later_numbers.contains(&page[previous_index]) {
-                        return false;
-                    }
+                // If 'previous_number' is in expected later_number we know the order is wrong
+                if page
+                    .iter()
+                    .take(index)
+                    .any(|previous_number| later_numbers.contains(previous_number))
+                {
+                    return false;
                 }
             }
         }
@@ -173,12 +176,12 @@ mod tests {
     fn test_is_page_in_order() {
         let print_queue = create_print_queue();
 
-        assert!(print_queue.is_page_in_order(&vec![75, 47, 61, 53, 29]));
-        assert!(print_queue.is_page_in_order(&vec![97, 61, 53, 29, 13]));
-        assert!(print_queue.is_page_in_order(&vec![75, 29, 13]));
-        assert!(!print_queue.is_page_in_order(&vec![75, 97, 47, 61, 53]));
-        assert!(!print_queue.is_page_in_order(&vec![61, 13, 29]));
-        assert!(!print_queue.is_page_in_order(&vec![97, 13, 75, 29, 47]));
+        assert!(print_queue.is_page_in_order(&[75, 47, 61, 53, 29]));
+        assert!(print_queue.is_page_in_order(&[97, 61, 53, 29, 13]));
+        assert!(print_queue.is_page_in_order(&[75, 29, 13]));
+        assert!(!print_queue.is_page_in_order(&[75, 97, 47, 61, 53]));
+        assert!(!print_queue.is_page_in_order(&[61, 13, 29]));
+        assert!(!print_queue.is_page_in_order(&[97, 13, 75, 29, 47]));
     }
 
     #[test]

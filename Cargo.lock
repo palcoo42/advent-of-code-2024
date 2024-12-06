@@ -96,6 +96,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "day_06_guard_gallivant"
+version = "0.1.0"
+dependencies = [
+ "advent-of-code 2.0.0",
+]
+
+[[package]]
 name = "day_1_historian_hysteria"
 version = "0.1.0"
 dependencies = [

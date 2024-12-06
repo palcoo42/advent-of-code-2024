@@ -5,5 +5,6 @@ members = [
     "day_02_rednosed_reports",
     "day_03_mull_it_over",
     "day_04_ceres_search",
-    "day_05_print_queue"
+    "day_05_print_queue",
+    "day_06_guard_gallivant"
 ]
