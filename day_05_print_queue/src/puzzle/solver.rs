@@ -26,12 +26,13 @@ impl PuzzleSolver for Solver {
     }
 
     fn part_1(&self) -> SolutionResult {
-        let sum_middles = self.print_queue.count_middle_pages_in_correct_order();
+        let sum_middles = self.print_queue.count_middle_pages_in_order();
         Ok(sum_middles.to_string())
     }
 
     fn part_2(&self) -> SolutionResult {
-        Ok(String::from("Not solved"))
+        let sum_middles_only_fixed = self.print_queue.count_middle_pages_in_only_fixed_order();
+        Ok(sum_middles_only_fixed.to_string())
     }
 
     fn part_3(&self) -> SolutionResult {

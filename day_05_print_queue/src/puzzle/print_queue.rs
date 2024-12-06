@@ -1,57 +1,50 @@
-use std::collections::HashMap;
-
-use super::{later_numbers::LaterNumbers, page::Page};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
 pub struct PrintQueue {
-    // Holds mapping between 'first' number and 'later' number
-    order: HashMap<usize, LaterNumbers>,
+    // This represents graph (adjacency list)
+    orders: HashMap<usize, HashSet<usize>>,
 
     // Pages to analyze
-    pages: Vec<Page>,
+    pages: Vec<Vec<usize>>,
 }
 
 impl PrintQueue {
     pub fn new() -> Self {
         Self {
-            order: HashMap::new(),
+            orders: HashMap::new(),
             pages: Vec::new(),
         }
     }
 
     pub fn insert_order(&mut self, first: usize, numbers: Vec<usize>) {
-        let later_numbers = self.order.entry(first).or_default();
+        let later_numbers = self.orders.entry(first).or_default();
 
         for number in numbers {
             later_numbers.insert(number);
         }
     }
 
-    pub fn insert_page(&mut self, pages: Vec<Page>) {
+    pub fn insert_page(&mut self, pages: Vec<Vec<usize>>) {
         for page in pages {
             self.pages.push(page);
         }
     }
 
-    fn filter_pages_in_correct_order(&self) -> Vec<&Page> {
+    fn filter_pages_in_order(&self) -> Vec<&Vec<usize>> {
         self.pages
             .iter()
-            .filter(|&page| self.is_page_order_correct(page))
+            .filter(|&page| self.is_page_in_order(page))
             .collect()
     }
 
-    fn is_page_order_correct(&self, page: &Page) -> bool {
-        for (index, current_number) in page.iter().enumerate() {
-            // If we have defined later numbers check correctness
-            if let Some(later_numbers) = self.order.get(current_number) {
-                // If we can find in previous number any of "later_numbers" we have invalid order
-                let previous_numbers = page.slice(index);
-
-                if previous_numbers
-                    .iter()
-                    .any(|previous| later_numbers.contains(*previous))
-                {
-                    return false;
+    fn is_page_in_order(&self, page: &Vec<usize>) -> bool {
+        for index in 1..page.len() {
+            if let Some(later_numbers) = self.orders.get(&page[index]) {
+                for previous_index in 0..index {
+                    if later_numbers.contains(&page[previous_index]) {
+                        return false;
+                    }
                 }
             }
         }
@@ -59,14 +52,79 @@ impl PrintQueue {
         true
     }
 
-    pub fn count_middle_pages_in_correct_order(&self) -> usize {
-        self.filter_pages_in_correct_order()
+    pub fn count_middle_pages_in_order(&self) -> usize {
+        self.filter_pages_in_order()
             .iter()
             .map(|page| {
-                page.get_middle()
+                Self::get_page_middle(page)
                     .unwrap_or_else(|| panic!("Failed to find middle element in '{:?}'", page))
             })
             .sum()
+    }
+
+    fn get_page_middle(numbers: &[usize]) -> Option<usize> {
+        match numbers.len() / 2 == 0 {
+            true => None,
+            false => Some(numbers[numbers.len() / 2]),
+        }
+    }
+
+    pub fn count_middle_pages_in_only_fixed_order(&self) -> usize {
+        self.pages
+            .iter()
+            .filter_map(|page| {
+                // Count only pages which needs to be fixed
+                match self.is_page_in_order(page) {
+                    true => None,
+                    false => {
+                        let ordered = self.fix_order(page);
+                        Some(Self::get_page_middle(&ordered).unwrap_or_else(|| {
+                            panic!("Failed to find middle element in '{:?}'", ordered)
+                        }))
+                    }
+                }
+            })
+            .sum()
+    }
+
+    fn fix_order(&self, page: &[usize]) -> Vec<usize> {
+        let mut reordered = page.to_vec();
+        let mut index = 1;
+
+        while index < reordered.len() {
+            let number = reordered[index];
+            let dependencies = self.orders.get(&number);
+
+            if dependencies.is_none() {
+                index += 1;
+                continue;
+            }
+
+            let dependencies = dependencies.expect("Failed to unwrap dependencies");
+
+            // Go through previous numbers
+            for prev_index in 0..index {
+                // Check if number should be behind
+                if dependencies.contains(&reordered[prev_index]) {
+                    // Remove 'number from old position'
+                    reordered.remove(index);
+
+                    // Move 'number' to earlier position
+                    reordered.insert(prev_index, number);
+
+                    // Continue with next item after new 'number' position
+                    index = prev_index; // Note: +1 is done at the end of while loop
+
+                    // Break from for loop
+                    break;
+                }
+            }
+
+            // No move -> continue with next item
+            index += 1;
+        }
+
+        reordered
     }
 }
 
@@ -100,33 +158,67 @@ mod tests {
         print_queue.insert_order(53, vec![13]);
 
         print_queue.insert_page(vec![
-            Page::new(vec![75, 47, 61, 53, 29]),
-            Page::new(vec![97, 61, 53, 29, 13]),
-            Page::new(vec![75, 29, 13]),
-            Page::new(vec![75, 97, 47, 61, 53]),
-            Page::new(vec![61, 13, 29]),
-            Page::new(vec![97, 13, 75, 29, 47]),
+            vec![75, 47, 61, 53, 29],
+            vec![97, 61, 53, 29, 13],
+            vec![75, 29, 13],
+            vec![75, 97, 47, 61, 53],
+            vec![61, 13, 29],
+            vec![97, 13, 75, 29, 47],
         ]);
 
         print_queue
     }
 
     #[test]
-    fn test_is_page_order_correct() {
+    fn test_is_page_in_order() {
         let print_queue = create_print_queue();
 
-        assert!(print_queue.is_page_order_correct(&Page::new(vec![75, 47, 61, 53, 29])));
-        assert!(print_queue.is_page_order_correct(&Page::new(vec![97, 61, 53, 29, 13])));
-        assert!(print_queue.is_page_order_correct(&Page::new(vec![75, 29, 13])));
-        assert!(!print_queue.is_page_order_correct(&Page::new(vec![75, 97, 47, 61, 53])));
-        assert!(!print_queue.is_page_order_correct(&Page::new(vec![61, 13, 29])));
-        assert!(!print_queue.is_page_order_correct(&Page::new(vec![97, 13, 75, 29, 47])));
+        assert!(print_queue.is_page_in_order(&vec![75, 47, 61, 53, 29]));
+        assert!(print_queue.is_page_in_order(&vec![97, 61, 53, 29, 13]));
+        assert!(print_queue.is_page_in_order(&vec![75, 29, 13]));
+        assert!(!print_queue.is_page_in_order(&vec![75, 97, 47, 61, 53]));
+        assert!(!print_queue.is_page_in_order(&vec![61, 13, 29]));
+        assert!(!print_queue.is_page_in_order(&vec![97, 13, 75, 29, 47]));
     }
 
     #[test]
-    fn test_count_middle_pages_in_correct_order() {
+    fn test_count_middle_pages_in_order() {
+        let print_queue = create_print_queue();
+        assert_eq!(print_queue.count_middle_pages_in_order(), 143);
+    }
+
+    #[test]
+    fn test_fix_order() {
         let print_queue = create_print_queue();
 
-        assert_eq!(print_queue.count_middle_pages_in_correct_order(), 143);
+        assert_eq!(
+            print_queue.fix_order(&[75, 47, 61, 53, 29]),
+            vec![75, 47, 61, 53, 29]
+        );
+
+        assert_eq!(
+            print_queue.fix_order(&[97, 61, 53, 29, 13]),
+            vec![97, 61, 53, 29, 13]
+        );
+
+        assert_eq!(print_queue.fix_order(&[75, 29, 13]), vec![75, 29, 13]);
+
+        assert_eq!(
+            print_queue.fix_order(&[75, 97, 47, 61, 53]),
+            vec![97, 75, 47, 61, 53]
+        );
+
+        assert_eq!(print_queue.fix_order(&[61, 13, 29]), vec![61, 29, 13]);
+
+        assert_eq!(
+            print_queue.fix_order(&[97, 13, 75, 29, 47]),
+            vec![97, 75, 47, 29, 13]
+        );
+    }
+
+    #[test]
+    fn test_count_middle_pages_in_only_fixed_order() {
+        let print_queue = create_print_queue();
+        assert_eq!(print_queue.count_middle_pages_in_only_fixed_order(), 123);
     }
 }

@@ -1,6 +1,6 @@
 use advent_of_code::puzzles::puzzle_error::PuzzleError;
 
-use super::{page::Page, print_queue::PrintQueue};
+use super::print_queue::PrintQueue;
 
 enum ParserState {
     Order,
@@ -63,7 +63,7 @@ impl Parser {
         Ok((first, second))
     }
 
-    fn decode_page(line: &str) -> Result<Page, PuzzleError> {
+    fn decode_page(line: &str) -> Result<Vec<usize>, PuzzleError> {
         let splitted = line.split_terminator(",").collect::<Vec<_>>();
 
         if splitted.is_empty() {
@@ -86,7 +86,7 @@ impl Parser {
             pages.push(number);
         }
 
-        Ok(Page::new(pages))
+        Ok(pages)
     }
 }
 
@@ -107,6 +107,6 @@ mod tests {
         let result = Parser::decode_page("1,2,3");
 
         assert!(result.is_ok(), "Result: {:?}", result);
-        assert_eq!(result.unwrap(), Page::new(vec![1, 2, 3]));
+        assert_eq!(result.unwrap(), vec![1, 2, 3]);
     }
 }
