@@ -26,13 +26,13 @@ impl PuzzleSolver for Solver {
     }
 
     fn part_1(&self) -> SolutionResult {
-        let visited_locations = self.maze.move_guard_distinct_position_count();
-        Ok(visited_locations.to_string())
+        let count = self.maze.collect_guard_moves().len();
+        Ok(count.to_string())
     }
 
     fn part_2(&self) -> SolutionResult {
-        let obstructions_count = self.maze.find_obstructions_count();
-        Ok(obstructions_count.to_string())
+        let count = self.maze.find_obstructions_count();
+        Ok(count.to_string())
     }
 
     fn part_3(&self) -> SolutionResult {

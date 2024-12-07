@@ -40,7 +40,7 @@ impl Maze {
         }
     }
 
-    pub fn move_guard_distinct_position_count(&self) -> usize {
+    pub fn collect_guard_moves(&self) -> Vec<Position> {
         // Track visited positions and directions
         let mut visited: HashMap<Position, HashSet<Direction>> = HashMap::new();
         let dirs = visited
@@ -63,8 +63,8 @@ impl Maze {
             self.print_to_file(&visited);
         }
 
-        // Count visited positions
-        visited.len()
+        // Return visited positions
+        visited.into_keys().collect::<Vec<_>>()
     }
 
     fn print_to_file(&self, visited: &HashMap<Position, HashSet<Direction>>) {
@@ -218,32 +218,22 @@ impl Maze {
     }
 
     pub fn find_obstructions_count(&self) -> usize {
-        // Spawn new puzzle with a new obstacle and investigate if it contains a loop
-        let mut loops = 0;
+        // Optimization - insert obstructions only on positions through which guard moves
+        let guard_moves = self.collect_guard_moves();
 
-        for i in 0..self.maze_rows {
-            for j in 0..self.maze_cols {
-                // Skip if position is occupied by Obstruction or Guard
-                if self.maze[i][j] == MazeObject::Obstruction
-                    || (i == self.guard.get_position().x && j == self.guard.get_position().y)
-                {
-                    continue;
-                }
-
+        guard_moves
+            .iter()
+            .filter(|new_obstruction| {
+                // Spawn new puzzle with a new obstacle and investigate if it contains a loop
                 let mut maze = self.clone();
-                if maze.investigate_loop(Position::new(i, j)) {
-                    loops += 1;
-                }
-            }
-        }
+                maze.insert_new_obstruction(new_obstruction);
 
-        loops
+                maze.investigate_loop()
+            })
+            .count()
     }
 
-    fn investigate_loop(&mut self, new_obstruction: Position) -> bool {
-        // And single extra obstacle
-        self.insert_new_obstruction(new_obstruction);
-
+    fn investigate_loop(&self) -> bool {
         // Track visited positions and directions
         let mut visited: HashMap<Position, HashSet<Direction>> = HashMap::new();
         let dirs = visited
@@ -272,7 +262,7 @@ impl Maze {
         false
     }
 
-    fn insert_new_obstruction(&mut self, pos: Position) {
+    fn insert_new_obstruction(&mut self, pos: &Position) {
         // Remove previous obstruction
         if let Some(current_pos) = &self.new_obstacle_position {
             self.maze[current_pos.x][current_pos.y] = MazeObject::Empty;
@@ -313,27 +303,50 @@ mod tests {
     }
 
     #[test]
-    fn test_move_guard_distinct_position_count() {
+    fn test_collect_guard_moves_len() {
         let maze = create_maze();
 
-        assert_eq!(maze.move_guard_distinct_position_count(), 41);
+        assert_eq!(maze.collect_guard_moves().len(), 41);
     }
 
     #[test]
-    fn test_investigate_loop() {
-        let mut maze = create_maze();
+    fn test_investigate_loop_no_loop() {
+        let maze = create_maze();
 
-        assert!(!maze.investigate_loop(Position::new(0, 0)));
-        assert!(!maze.investigate_loop(Position::new(0, 9)));
-        assert!(!maze.investigate_loop(Position::new(9, 0)));
-        assert!(!maze.investigate_loop(Position::new(9, 9)));
+        let positions = vec![
+            Position::new(0, 0),
+            Position::new(0, 9),
+            Position::new(9, 0),
+            Position::new(9, 9),
+        ];
 
-        assert!(maze.investigate_loop(Position::new(6, 3)));
-        assert!(maze.investigate_loop(Position::new(7, 6)));
-        assert!(maze.investigate_loop(Position::new(7, 7)));
-        assert!(maze.investigate_loop(Position::new(8, 1)));
-        assert!(maze.investigate_loop(Position::new(8, 3)));
-        assert!(maze.investigate_loop(Position::new(9, 7)));
+        for pos in &positions {
+            let mut maze = maze.clone();
+            maze.insert_new_obstruction(pos);
+
+            assert!(!maze.investigate_loop(), "Position: {:?}", pos);
+        }
+    }
+
+    #[test]
+    fn test_investigate_loop_loop() {
+        let maze = create_maze();
+
+        let positions = vec![
+            Position::new(6, 3),
+            Position::new(7, 6),
+            Position::new(7, 7),
+            Position::new(8, 1),
+            Position::new(8, 3),
+            Position::new(9, 7),
+        ];
+
+        for pos in &positions {
+            let mut maze = maze.clone();
+            maze.insert_new_obstruction(pos);
+
+            assert!(maze.investigate_loop(), "Position: {:?}", pos);
+        }
     }
 
     #[test]
