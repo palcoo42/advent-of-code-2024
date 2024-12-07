@@ -1,15 +1,17 @@
+use std::collections::HashMap;
 use std::io::Write;
 use std::{collections::HashSet, fs::File};
 
 use super::position::Position;
 use super::{direction::Direction, guard::Guard, maze_object::MazeObject};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Maze {
     maze: Vec<Vec<MazeObject>>,
     maze_rows: usize,
     maze_cols: usize,
     guard: Guard,
+    new_obstacle_position: Option<Position>,
 }
 
 impl Default for Maze {
@@ -19,6 +21,7 @@ impl Default for Maze {
             maze_rows: 0,
             maze_cols: 0,
             guard: Guard::new(super::position::Position::new(0, 0), Direction::Down),
+            new_obstacle_position: None,
         }
     }
 }
@@ -33,19 +36,25 @@ impl Maze {
             maze_rows,
             maze_cols,
             guard,
+            new_obstacle_position: None,
         }
     }
 
     pub fn move_guard_distinct_position_count(&self) -> usize {
-        // Track visited positions
-        let mut visited = HashSet::new();
-        visited.insert(self.guard.get_position().clone());
+        // Track visited positions and directions
+        let mut visited: HashMap<Position, HashSet<Direction>> = HashMap::new();
+        let dirs = visited
+            .entry(self.guard.get_position().clone())
+            .or_default();
+        dirs.insert(self.guard.get_direction().clone());
 
         // Keep track of the new position
         let mut guard = Some(self.guard.clone());
 
         while let Some(new_guard) = self.move_guard(&guard) {
-            visited.insert(new_guard.get_position().clone());
+            let dirs = visited.entry(new_guard.get_position().clone()).or_default();
+            dirs.insert(new_guard.get_direction().clone());
+
             guard = Some(new_guard);
         }
 
@@ -58,33 +67,43 @@ impl Maze {
         visited.len()
     }
 
-    fn print_to_file(&self, visited: &HashSet<Position>) {
+    fn print_to_file(&self, visited: &HashMap<Position, HashSet<Direction>>) {
         // Print visited locations into the file
         let mut file = File::create("/tmp/log.txt").unwrap();
 
         for i in 0..self.maze_rows {
             for j in 0..self.maze_cols {
-                match self.maze[i][j] {
+                let c = match self.maze[i][j] {
                     MazeObject::Empty => {
-                        let c = if self.guard.get_position().x == i
-                            && self.guard.get_position().y == j
-                        {
+                        if self.guard.get_position().x == i && self.guard.get_position().y == j {
                             match self.guard.get_direction() {
                                 Direction::Right => ">",
                                 Direction::Down => "v",
                                 Direction::Left => "<",
                                 Direction::Up => "^",
                             }
-                        } else if visited.contains(&Position::new(i, j)) {
-                            "o"
+                        } else if let Some(dirs) = visited.get(&Position::new(i, j)) {
+                            let up_down =
+                                dirs.contains(&Direction::Up) || dirs.contains(&Direction::Down);
+
+                            let left_right =
+                                dirs.contains(&Direction::Left) || dirs.contains(&Direction::Right);
+
+                            match (up_down, left_right) {
+                                (true, true) => "+",
+                                (true, false) => "|",
+                                (false, true) => "-",
+                                (false, false) => "x",
+                            }
                         } else {
                             "."
-                        };
-
-                        write!(file, "{}", c).unwrap()
+                        }
                     }
-                    MazeObject::Obstruction => write!(file, "#").unwrap(),
-                }
+                    MazeObject::Obstruction => "#",
+                    MazeObject::NewObstruction => "O",
+                };
+
+                write!(file, "{}", c).unwrap();
             }
             writeln!(file).unwrap();
         }
@@ -116,7 +135,7 @@ impl Maze {
 
                 Some(guard_up)
             }
-            MazeObject::Obstruction => {
+            MazeObject::Obstruction | MazeObject::NewObstruction => {
                 // Rotate right and move right (90 degrees right)
                 let mut guard_right = guard.clone();
                 *guard_right.get_direction_mut() = Direction::Right;
@@ -140,7 +159,7 @@ impl Maze {
 
                 Some(guard_right)
             }
-            MazeObject::Obstruction => {
+            MazeObject::Obstruction | MazeObject::NewObstruction => {
                 // Rotate down and move down (90 degrees right)
                 let mut guard_down = guard.clone();
                 *guard_down.get_direction_mut() = Direction::Down;
@@ -164,7 +183,7 @@ impl Maze {
 
                 Some(guard_down)
             }
-            MazeObject::Obstruction => {
+            MazeObject::Obstruction | MazeObject::NewObstruction => {
                 // Rotate left and move left (90 degrees right)
                 let mut guard_left = guard.clone();
                 *guard_left.get_direction_mut() = Direction::Left;
@@ -188,7 +207,7 @@ impl Maze {
 
                 Some(guard_left)
             }
-            MazeObject::Obstruction => {
+            MazeObject::Obstruction | MazeObject::NewObstruction => {
                 // Rotate up and move up (90 degrees right)
                 let mut guard_up = guard.clone();
                 *guard_up.get_direction_mut() = Direction::Up;
@@ -196,6 +215,72 @@ impl Maze {
                 self.move_guard_up(&guard_up)
             }
         }
+    }
+
+    pub fn find_obstructions_count(&self) -> usize {
+        // Spawn new puzzle with a new obstacle and investigate if it contains a loop
+        let mut loops = 0;
+
+        for i in 0..self.maze_rows {
+            for j in 0..self.maze_cols {
+                // Skip if position is occupied by Obstruction or Guard
+                if self.maze[i][j] == MazeObject::Obstruction
+                    || (i == self.guard.get_position().x && j == self.guard.get_position().y)
+                {
+                    continue;
+                }
+
+                let mut maze = self.clone();
+                if maze.investigate_loop(Position::new(i, j)) {
+                    loops += 1;
+                }
+            }
+        }
+
+        loops
+    }
+
+    fn investigate_loop(&mut self, new_obstruction: Position) -> bool {
+        // And single extra obstacle
+        self.insert_new_obstruction(new_obstruction);
+
+        // Track visited positions and directions
+        let mut visited: HashMap<Position, HashSet<Direction>> = HashMap::new();
+        let dirs = visited
+            .entry(self.guard.get_position().clone())
+            .or_default();
+        dirs.insert(self.guard.get_direction().clone());
+
+        // Keep track of the new position
+        let mut guard = Some(self.guard.clone());
+
+        while let Some(new_guard) = self.move_guard(&guard) {
+            // Continue with movement
+            let dirs = visited.entry(new_guard.get_position().clone()).or_default();
+
+            // If we are moving in the same direction as previously we know we are in the loop
+            if dirs.contains(new_guard.get_direction()) {
+                return true;
+            }
+
+            // Update visited direction
+            dirs.insert(new_guard.get_direction().clone());
+            guard = Some(new_guard);
+        }
+
+        // No loop detected
+        false
+    }
+
+    fn insert_new_obstruction(&mut self, pos: Position) {
+        // Remove previous obstruction
+        if let Some(current_pos) = &self.new_obstacle_position {
+            self.maze[current_pos.x][current_pos.y] = MazeObject::Empty;
+        }
+
+        // Insert new obstruction
+        self.new_obstacle_position = Some(pos.clone());
+        self.maze[pos.x][pos.y] = MazeObject::NewObstruction;
     }
 }
 
@@ -232,5 +317,29 @@ mod tests {
         let maze = create_maze();
 
         assert_eq!(maze.move_guard_distinct_position_count(), 41);
+    }
+
+    #[test]
+    fn test_investigate_loop() {
+        let mut maze = create_maze();
+
+        assert!(!maze.investigate_loop(Position::new(0, 0)));
+        assert!(!maze.investigate_loop(Position::new(0, 9)));
+        assert!(!maze.investigate_loop(Position::new(9, 0)));
+        assert!(!maze.investigate_loop(Position::new(9, 9)));
+
+        assert!(maze.investigate_loop(Position::new(6, 3)));
+        assert!(maze.investigate_loop(Position::new(7, 6)));
+        assert!(maze.investigate_loop(Position::new(7, 7)));
+        assert!(maze.investigate_loop(Position::new(8, 1)));
+        assert!(maze.investigate_loop(Position::new(8, 3)));
+        assert!(maze.investigate_loop(Position::new(9, 7)));
+    }
+
+    #[test]
+    fn test_find_obstructions_count() {
+        let maze = create_maze();
+
+        assert_eq!(maze.find_obstructions_count(), 6);
     }
 }

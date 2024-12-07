@@ -1,5 +1,5 @@
 [package]
-name = "day_1_historian_hysteria"
+name = "day_01_historian_hysteria"
 version = "0.1.0"
 edition = "2021"
 

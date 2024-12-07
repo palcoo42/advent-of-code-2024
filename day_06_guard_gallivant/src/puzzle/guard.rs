@@ -1,6 +1,6 @@
 use super::{direction::Direction, position::Position};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Guard {
     position: Position,
     direction: Direction,

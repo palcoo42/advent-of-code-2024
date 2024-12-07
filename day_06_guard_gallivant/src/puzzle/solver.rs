@@ -31,7 +31,8 @@ impl PuzzleSolver for Solver {
     }
 
     fn part_2(&self) -> SolutionResult {
-        Ok(String::from("Not solved"))
+        let obstructions_count = self.maze.find_obstructions_count();
+        Ok(obstructions_count.to_string())
     }
 
     fn part_3(&self) -> SolutionResult {
