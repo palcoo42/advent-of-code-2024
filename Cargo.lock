@@ -111,6 +111,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "day_07_bridge_repair"
+version = "0.1.0"
+dependencies = [
+ "advent-of-code 2.0.0",
+]
+
+[[package]]
 name = "encode_unicode"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
