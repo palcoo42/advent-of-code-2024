@@ -2,4 +2,5 @@
 pub enum Operation {
     Add,
     Multiply,
+    Concatenation,
 }

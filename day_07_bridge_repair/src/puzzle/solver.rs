@@ -29,17 +29,30 @@ impl PuzzleSolver for Solver {
         let result = self
             .equations
             .iter()
-            .filter_map(|equation| match equation.solve().is_empty() {
-                true => None,
-                false => Some(equation.get_calibration()),
-            })
+            .filter_map(
+                |equation| match equation.solve_without_concatenation().is_empty() {
+                    true => None,
+                    false => Some(equation.get_calibration()),
+                },
+            )
             .sum::<usize>();
 
         Ok(result.to_string())
     }
 
     fn part_2(&self) -> SolutionResult {
-        Ok(String::from("Not solved"))
+        let result = self
+            .equations
+            .iter()
+            .filter_map(
+                |equation| match equation.solve_with_concatenation().is_empty() {
+                    true => None,
+                    false => Some(equation.get_calibration()),
+                },
+            )
+            .sum::<usize>();
+
+        Ok(result.to_string())
     }
 
     fn part_3(&self) -> SolutionResult {
