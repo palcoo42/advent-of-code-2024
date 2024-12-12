@@ -3,7 +3,7 @@ use advent_of_code::puzzles::{
     puzzle_solver::PuzzleSolver,
 };
 
-use super::{grid::Grid, parser::Parser};
+use super::{grid::Grid, parser::Parser, part::Part};
 
 pub struct Solver {
     grid: Grid,
@@ -26,12 +26,15 @@ impl PuzzleSolver for Solver {
     }
 
     fn part_1(&self) -> SolutionResult {
+        self.grid.set_algorithm(Part::Part1);
         let anti_nodes_len = self.grid.collect_anti_nodes().len();
         Ok(anti_nodes_len.to_string())
     }
 
     fn part_2(&self) -> SolutionResult {
-        Ok(String::from("Not solved"))
+        self.grid.set_algorithm(Part::Part2);
+        let anti_nodes_len = self.grid.collect_anti_nodes().len();
+        Ok(anti_nodes_len.to_string())
     }
 
     fn part_3(&self) -> SolutionResult {
