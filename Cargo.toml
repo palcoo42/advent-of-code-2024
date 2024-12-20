@@ -8,5 +8,6 @@ members = [
     "day_05_print_queue",
     "day_06_guard_gallivant",
     "day_07_bridge_repair",
-    "day_08_resonant_collinearity"
+    "day_08_resonant_collinearity",
+    "day_09_disk_fragmenter"
 ]

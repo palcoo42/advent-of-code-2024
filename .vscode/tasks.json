@@ -4,7 +4,7 @@
 		{
 			"type": "cargo",
 			"command": "run",
-			"args": [ "--package", "day_08_resonant_collinearity" ],
+			"args": [ "--package", "day_09_disk_fragmenter" ],
 			"problemMatcher": [
 				"$rustc"
 			],
@@ -18,7 +18,7 @@
 		{
 			"type": "cargo",
 			"command": "test",
-			"args": [ "--package", "day_08_resonant_collinearity" ],
+			"args": [ "--package", "day_09_disk_fragmenter" ],
 			"problemMatcher": [
 				"$rustc"
 			],
