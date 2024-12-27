@@ -26,12 +26,13 @@ impl PuzzleSolver for Solver {
     }
 
     fn part_1(&self) -> SolutionResult {
-        let checksum = self.disk_map.compact_get_checksum();
+        let checksum = self.disk_map.compact_per_block_get_checksum();
         Ok(checksum.to_string())
     }
 
     fn part_2(&self) -> SolutionResult {
-        Ok(String::from("Not solved"))
+        let checksum = self.disk_map.compact_per_file_get_checksum();
+        Ok(checksum.to_string())
     }
 }
 
@@ -112,7 +113,7 @@ mod tests {
         }
 
         assert!(result.is_ok(), "Result: {:?}", result);
-        assert_eq!(result.unwrap(), String::from("Not solved"));
+        assert_eq!(result.unwrap(), String::from("6412390114238"));
     }
 
     #[test]
