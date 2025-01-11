@@ -1,4 +1,4 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 
 use super::{position::Position, topographic_state::TopographicState};
 
@@ -58,13 +58,25 @@ impl TopographicMap {
     }
 
     fn count_trail_head_score(topographic_map: &TopographicMap, trail_head: &Position) -> usize {
+        let solutions = Self::find_trail_head_solutions(topographic_map, trail_head);
+        solutions.keys().len()
+    }
+
+    pub fn get_value(&self, pos: &Position) -> u8 {
+        self.internal[pos.row][pos.col]
+    }
+
+    fn find_trail_head_solutions(
+        topographic_map: &TopographicMap,
+        trail_head: &Position,
+    ) -> HashMap<Position, usize> {
         // Starting position is 0
         if topographic_map.get_value(trail_head) != TRAIL_HEAD_START {
-            return 0;
+            return HashMap::new();
         }
 
         // Collection of found trails (end positions for given trail starting ad trail_head)
-        let mut hiking_trails: HashSet<Position> = HashSet::new();
+        let mut hiking_solutions: HashMap<Position, usize> = HashMap::new();
 
         // Remaining states to check
         let state = TopographicState::new(topographic_map.clone(), trail_head);
@@ -74,7 +86,8 @@ impl TopographicMap {
         while let Some(state) = remaining_states.pop_front() {
             // If we have reached end position we have a solution so we can stop here
             if state.get_value() == TRAIL_HEAD_END {
-                hiking_trails.insert(state.position.clone());
+                let solution = hiking_solutions.entry(state.position.clone()).or_insert(0);
+                *solution += 1;
                 continue;
             }
 
@@ -85,11 +98,21 @@ impl TopographicMap {
             }
         }
 
-        hiking_trails.len()
+        hiking_solutions
     }
 
-    pub fn get_value(&self, pos: &Position) -> u8 {
-        self.internal[pos.row][pos.col]
+    pub fn count_trail_heads_rating(&self) -> usize {
+        let trail_heads = self.find_trail_heads();
+
+        trail_heads
+            .into_iter()
+            .map(|trail_head| TopographicMap::count_trail_head_rating(self, &trail_head))
+            .sum()
+    }
+
+    fn count_trail_head_rating(topographic_map: &TopographicMap, trail_head: &Position) -> usize {
+        let solutions = Self::find_trail_head_solutions(topographic_map, trail_head);
+        solutions.values().map(|count| *count).sum()
     }
 }
 
@@ -178,5 +201,38 @@ mod tests {
     fn test_count_trail_heads_score_complex() {
         let topographic_map = create_map_complex();
         assert_eq!(topographic_map.count_trail_heads_score(), 36);
+    }
+
+    #[test]
+    fn test_count_trail_head_rating_complex() {
+        const TRAIL_SCORES: [(Position, usize); 9] = [
+            (Position { row: 0, col: 2 }, 20),
+            (Position { row: 0, col: 4 }, 24),
+            (Position { row: 2, col: 4 }, 10),
+            (Position { row: 4, col: 6 }, 4),
+            (Position { row: 5, col: 2 }, 1),
+            (Position { row: 5, col: 5 }, 4),
+            (Position { row: 6, col: 0 }, 5),
+            (Position { row: 6, col: 6 }, 8),
+            (Position { row: 7, col: 1 }, 5),
+        ];
+
+        let topographic_map = create_map_complex();
+
+        for trail_score in TRAIL_SCORES {
+            let score = TopographicMap::count_trail_head_rating(&topographic_map, &trail_score.0);
+
+            assert_eq!(
+                score, trail_score.1,
+                "Wrong trail head count for position '{:?}', found: {}, expected: {}",
+                trail_score.0, score, trail_score.1
+            );
+        }
+    }
+
+    #[test]
+    fn test_count_trail_heads_rating_complex() {
+        let topographic_map = create_map_complex();
+        assert_eq!(topographic_map.count_trail_heads_rating(), 81);
     }
 }

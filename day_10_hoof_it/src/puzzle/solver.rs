@@ -31,7 +31,8 @@ impl PuzzleSolver for Solver {
     }
 
     fn part_2(&self) -> SolutionResult {
-        Ok(String::from("Not solved"))
+        let count = self.topographic_map.count_trail_heads_rating();
+        Ok(count.to_string())
     }
 
     fn part_3(&self) -> SolutionResult {
@@ -116,7 +117,7 @@ mod tests {
         }
 
         assert!(result.is_ok(), "Result: {:?}", result);
-        assert_eq!(result.unwrap(), String::from("Not solved"));
+        assert_eq!(result.unwrap(), String::from("1210"));
     }
 
     #[test]
