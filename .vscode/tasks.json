@@ -4,7 +4,7 @@
 		{
 			"type": "cargo",
 			"command": "run",
-			"args": [ "--package", "day_10_hoof_it" ],
+			"args": [ "--package", "day_11_plutonian_pebbles" ],
 			"problemMatcher": [
 				"$rustc"
 			],
@@ -18,7 +18,7 @@
 		{
 			"type": "cargo",
 			"command": "test",
-			"args": [ "--package", "day_10_hoof_it" ],
+			"args": [ "--package", "day_11_plutonian_pebbles" ],
 			"problemMatcher": [
 				"$rustc"
 			],
