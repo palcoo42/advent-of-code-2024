@@ -31,7 +31,8 @@ impl PuzzleSolver for Solver {
     }
 
     fn part_2(&self) -> SolutionResult {
-        Ok(String::from("Not solved"))
+        let stones_count = self.pebbles.blink_stones_count(75);
+        Ok(stones_count.to_string())
     }
 
     fn part_3(&self) -> SolutionResult {
@@ -116,7 +117,7 @@ mod tests {
         }
 
         assert!(result.is_ok(), "Result: {:?}", result);
-        assert_eq!(result.unwrap(), String::from("Not solved"));
+        assert_eq!(result.unwrap(), String::from("272673043446478"));
     }
 
     #[test]
