@@ -4,17 +4,8 @@ version = 4
 
 [[package]]
 name = "advent-of-code"
-version = "1.2.0"
-source = "git+https://github.com/palcoo42/advent-of-code.git?tag=1.2.1#babdbfcb28b32061fe0ee63f7bb54fd083a91461"
-dependencies = [
- "indicatif",
- "temp-env",
-]
-
-[[package]]
-name = "advent-of-code"
-version = "2.0.0"
-source = "git+https://github.com/palcoo42/advent-of-code.git?tag=2.0.0#e0aacaedb246bc4b394aa75f3e2849841bd49050"
+version = "3.1.0"
+source = "git+https://github.com/palcoo42/advent-of-code.git?tag=3.0.0#cf1161cf6a8e7e14df079b43caefa6d8cc8684f3"
 dependencies = [
  "indicatif",
  "temp-env",
@@ -70,7 +61,7 @@ dependencies = [
 name = "day_01_historian_hysteria"
 version = "0.1.0"
 dependencies = [
- "advent-of-code 1.2.0",
+ "advent-of-code",
  "regex",
 ]
 
@@ -78,14 +69,14 @@ dependencies = [
 name = "day_02_rednosed_reports"
 version = "0.1.0"
 dependencies = [
- "advent-of-code 1.2.0",
+ "advent-of-code",
 ]
 
 [[package]]
 name = "day_03_mull_it_over"
 version = "0.1.0"
 dependencies = [
- "advent-of-code 1.2.0",
+ "advent-of-code",
  "regex",
 ]
 
@@ -93,35 +84,35 @@ dependencies = [
 name = "day_04_ceres_search"
 version = "0.1.0"
 dependencies = [
- "advent-of-code 1.2.0",
+ "advent-of-code",
 ]
 
 [[package]]
 name = "day_05_print_queue"
 version = "0.1.0"
 dependencies = [
- "advent-of-code 2.0.0",
+ "advent-of-code",
 ]
 
 [[package]]
 name = "day_06_guard_gallivant"
 version = "0.1.0"
 dependencies = [
- "advent-of-code 2.0.0",
+ "advent-of-code",
 ]
 
 [[package]]
 name = "day_07_bridge_repair"
 version = "0.1.0"
 dependencies = [
- "advent-of-code 2.0.0",
+ "advent-of-code",
 ]
 
 [[package]]
 name = "day_08_resonant_collinearity"
 version = "0.1.0"
 dependencies = [
- "advent-of-code 2.0.0",
+ "advent-of-code",
  "itertools",
 ]
 
@@ -129,21 +120,21 @@ dependencies = [
 name = "day_09_disk_fragmenter"
 version = "0.1.0"
 dependencies = [
- "advent-of-code 2.0.0",
+ "advent-of-code",
 ]
 
 [[package]]
 name = "day_10_hoof_it"
 version = "0.1.0"
 dependencies = [
- "advent-of-code 2.0.0",
+ "advent-of-code",
 ]
 
 [[package]]
 name = "day_11_plutonian_pebbles"
 version = "0.1.0"
 dependencies = [
- "advent-of-code 2.0.0",
+ "advent-of-code",
 ]
 
 [[package]]
@@ -173,9 +164,9 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
  "either",
 ]

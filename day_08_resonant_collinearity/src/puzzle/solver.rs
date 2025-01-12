@@ -41,75 +41,29 @@ impl PuzzleSolver for Solver {
 #[cfg(test)]
 mod tests {
 
-    use std::{
-        fs::File,
-        io::{BufRead, BufReader},
-        sync::{LazyLock, Mutex},
-    };
+    use std::sync::LazyLock;
 
-    use advent_of_code::env::project::Project;
+    use advent_of_code::puzzles::puzzle_tester::PuzzleTester;
 
     use super::*;
 
-    fn create_solver() -> &'static Mutex<Solver> {
-        static SOLVER: LazyLock<Mutex<Solver>> = LazyLock::new(|| {
-            // Read input file
-            let input_file = Project::new().resource_file("input.txt");
-            let file = File::open(&input_file)
-                .unwrap_or_else(|err| panic!("Failed to open file with an error '{}'", err));
-            let reader = BufReader::new(file);
-            let lines = reader
-                .lines()
-                .collect::<Result<Vec<String>, _>>()
-                .unwrap_or_else(|err| panic!("Failed to unwrap lines with an error '{}'", err));
+    const SOLUTION_1: &str = "220";
+    const SOLUTION_2: &str = "813";
 
-            let lines: Vec<&str> = lines.iter().map(|s| s.as_str()).collect();
+    fn get_tester() -> &'static PuzzleTester<Solver> {
+        static TESTER: LazyLock<PuzzleTester<Solver>> =
+            LazyLock::new(|| PuzzleTester::new(SOLUTION_1, SOLUTION_2));
 
-            // Prepare solver
-            let mut solver = Solver::new();
-
-            // Parse input file
-            solver
-                .parse_input_file(&lines)
-                .unwrap_or_else(|err| panic!("Failed to parse input file with error '{}'", err));
-
-            Mutex::new(solver)
-        });
-
-        &SOLVER
+        &TESTER
     }
 
     #[test]
     fn test_part_1() {
-        let result;
-
-        // Solve the puzzle inside a scope so that guard is released automatically avoiding a panic in the thread.
-        {
-            let solver = create_solver()
-                .lock()
-                .expect("Failed to unwrap Solver Mutex");
-
-            result = solver.part_1();
-        }
-
-        assert!(result.is_ok(), "Result: {:?}", result);
-        assert_eq!(result.unwrap(), String::from("220"));
+        get_tester().test_part_1();
     }
 
     #[test]
     fn test_part_2() {
-        let result;
-
-        // Solve the puzzle inside a scope so that guard is released automatically avoiding a panic in the thread.
-        {
-            let solver = create_solver()
-                .lock()
-                .expect("Failed to unwrap Solver Mutex");
-
-            result = solver.part_2();
-        }
-
-        assert!(result.is_ok(), "Result: {:?}", result);
-        assert_eq!(result.unwrap(), String::from("813"));
+        get_tester().test_part_2();
     }
 }

@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-advent-of-code = { git = "https://github.com/palcoo42/advent-of-code.git", tag = "1.2.1" }
+advent-of-code = { git = "https://github.com/palcoo42/advent-of-code.git", tag = "3.0.0" }
