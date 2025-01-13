@@ -138,6 +138,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "day_12_garden_groups"
+version = "0.1.0"
+dependencies = [
+ "advent-of-code",
+]
+
+[[package]]
 name = "either"
 version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
