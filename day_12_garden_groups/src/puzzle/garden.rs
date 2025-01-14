@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::VecDeque};
 
-use super::{plot::Plot, position::Position};
+use super::{corners::Corners, plot::Plot, position::Position};
 
 #[derive(Default)]
 pub struct Garden {
@@ -95,51 +95,156 @@ impl Garden {
             // Mark current position as already analyzed
             self.set_visited(&next);
 
-            // Get surrounding plots
-            let plots = self.get_plots(&next);
+            // Get all corners around current position
+            let neighbors_corners = next.corners(self.rows, self.cols);
 
-            // Update perimeter
-            for plot in plots {
-                let perimeter_value = match plot {
-                    Plot::Border | Plot::Different => 1,
-                    Plot::Same(neighbor_pos) => {
-                        // New position to continue with calculation
-                        if !self.is_visited(&neighbor_pos) {
-                            remaining.push_back(neighbor_pos);
-                        }
-                        0
-                    }
-                };
+            // Add positions which needs to be analyzed next
+            let mut neighbor_positions = self.get_next_positions(&next, &neighbors_corners);
 
-                perimeter += perimeter_value;
-            }
+            // Update perimeter - in positions are only Same positions which are not counted.
+            // Because we can have up to 4 neighbors perimeter value is simply 4 - neighbor_positions.len()
+            perimeter += 4 - neighbor_positions.len();
+
+            remaining.append(&mut neighbor_positions);
         }
 
         area * perimeter
     }
 
-    fn get_plots(&self, current: &Position) -> Vec<Plot> {
+    pub fn fence_price_discount(&self) -> usize {
+        self.reset();
+
+        let mut price = 0;
+
+        while let Some(next) = self.find_next_position() {
+            price += self.area_price_discount(&next);
+        }
+
+        price
+    }
+
+    fn area_price_discount(&self, pos: &Position) -> usize {
+        let mut area = 0;
+        // Note: Number of corner == number of sides, so we can compute number of corners instead
+        let mut corners = 0;
+
+        // Collection of remaining positions to check
+        let mut remaining: VecDeque<_> = vec![pos.clone()].into();
+
+        while let Some(next) = remaining.pop_front() {
+            // Note: We could insert the same position in the 'remaining' queue multiple times.
+            // To solve this issue check also here if position was already analyzed;
+            if self.is_visited(&next) {
+                continue;
+            }
+
+            // We have new area
+            area += 1;
+
+            // Mark current position as already analyzed
+            self.set_visited(&next);
+
+            // Get all corners around current position
+            let neighbors_corners = next.corners(self.rows, self.cols);
+
+            // Calculate corners
+            let corners_value = self.get_corners_value(&next, &neighbors_corners);
+
+            // Update corners
+            corners += corners_value;
+
+            // Add positions which needs to be analyzed next
+            let mut neighbor_positions = self.get_next_positions(&next, &neighbors_corners);
+            remaining.append(&mut neighbor_positions);
+        }
+
+        area * corners
+    }
+
+    fn get_next_positions(&self, current: &Position, corners: &Corners) -> VecDeque<Position> {
         // Area contains plots with the same name, so get current name
         let area_name = self.grid[current.row][current.col];
 
-        // Note: This method returns only valid positions, i.e. position which are within grid
-        // marked by rows and cols. However we need four plots which are surrounding current
-        // position. These missing positions are marked as Border.
-        let neighbors = current.neighbors(self.rows, self.cols);
-        let border_plots = 4 - neighbors.len();
+        // We can move only horizontally and vertically, not diagonally
+        let neighbor_positions = [&corners.north, &corners.east, &corners.south, &corners.west];
 
-        let mut plots = neighbors
-            .into_iter()
-            .map(|pos| match self.grid[pos.row][pos.col] == area_name {
-                true => Plot::Same(pos),
-                false => Plot::Different,
+        // Filter out None elements and elements which are not in the same area
+        neighbor_positions
+            .iter()
+            .filter_map(|&pos| match pos {
+                Some(pos) => match self.grid[pos.row][pos.col] == area_name {
+                    true => Some(pos.clone()),
+                    false => None,
+                },
+                None => None,
             })
-            .collect::<Vec<_>>();
+            .collect()
+    }
 
-        // Append Border plots (if present)
-        plots.append(&mut vec![Plot::Border; border_plots]);
+    fn get_corners_value(&self, current: &Position, corners: &Corners) -> usize {
+        // Area contains plots with the same name, so get current name
+        let area_name = self.grid[current.row][current.col];
 
-        plots
+        let plot_north = self.get_plot_for_side(&corners.north, area_name);
+        let plot_north_east = self.get_plot_for_side(&corners.north_east, area_name);
+        let plot_east = self.get_plot_for_side(&corners.east, area_name);
+        let plot_south_east = self.get_plot_for_side(&corners.south_east, area_name);
+        let plot_south = self.get_plot_for_side(&corners.south, area_name);
+        let plot_south_west = self.get_plot_for_side(&corners.south_west, area_name);
+        let plot_west = self.get_plot_for_side(&corners.west, area_name);
+        let plot_north_west = self.get_plot_for_side(&corners.north_west, area_name);
+
+        // We can have up to four corners
+        let top_left = (Self::is_plot_different(&plot_west)
+            // && Self::is_plot_different(&plot_north_west)
+            && Self::is_plot_different(&plot_north))
+            || (Self::is_plot_same(&plot_west)
+                && Self::is_plot_different(&plot_north_west)
+                && Self::is_plot_same(&plot_north));
+
+        let top_right = (Self::is_plot_different(&plot_north)
+            // && Self::is_plot_different(&plot_north_east)
+            && Self::is_plot_different(&plot_east))
+            || (Self::is_plot_same(&plot_north)
+                && Self::is_plot_different(&plot_north_east)
+                && Self::is_plot_same(&plot_east));
+
+        let bottom_right = (Self::is_plot_different(&plot_east)
+            // && Self::is_plot_different(&plot_south_east)
+            && Self::is_plot_different(&plot_south))
+            || (Self::is_plot_same(&plot_east)
+                && Self::is_plot_different(&plot_south_east)
+                && Self::is_plot_same(&plot_south));
+
+        let bottom_left = (Self::is_plot_different(&plot_south)
+            // && Self::is_plot_different(&plot_south_west)
+            && Self::is_plot_different(&plot_west))
+            || (Self::is_plot_same(&plot_south)
+                && Self::is_plot_different(&plot_south_west)
+                && Self::is_plot_same(&plot_west));
+
+        top_left as usize + top_right as usize + bottom_right as usize + bottom_left as usize
+    }
+
+    fn is_plot_different(plot: &Plot) -> bool {
+        match plot {
+            Plot::Border | Plot::Different => true,
+            Plot::Same(_) => false,
+        }
+    }
+
+    fn is_plot_same(plot: &Plot) -> bool {
+        !Self::is_plot_different(plot)
+    }
+
+    fn get_plot_for_side(&self, side: &Option<Position>, area_name: char) -> Plot {
+        match side {
+            Some(pos) => match self.grid[pos.row][pos.col] == area_name {
+                true => Plot::Same(pos.clone()),
+                false => Plot::Different,
+            },
+            None => Plot::Border,
+        }
     }
 }
 
@@ -181,69 +286,25 @@ mod tests {
         ])
     }
 
-    #[test]
-    fn test_get_plots() {
-        let garden = create_garden_simple();
+    fn create_garden_e_shaped() -> Garden {
+        Garden::new(vec![
+            vec!['E', 'E', 'E', 'E', 'E'],
+            vec!['E', 'X', 'X', 'X', 'X'],
+            vec!['E', 'E', 'E', 'E', 'E'],
+            vec!['E', 'X', 'X', 'X', 'X'],
+            vec!['E', 'E', 'E', 'E', 'E'],
+        ])
+    }
 
-        assert_eq!(
-            garden.get_plots(&Position::new(0, 0)),
-            vec![
-                Plot::Same(Position::new(0, 1)),
-                Plot::Different,
-                Plot::Border,
-                Plot::Border
-            ]
-        );
-
-        assert_eq!(
-            garden.get_plots(&Position::new(0, 1)),
-            vec![
-                Plot::Same(Position::new(0, 0)),
-                Plot::Same(Position::new(0, 2)),
-                Plot::Different,
-                Plot::Border
-            ]
-        );
-
-        assert_eq!(
-            garden.get_plots(&Position::new(0, 3)),
-            vec![
-                Plot::Same(Position::new(0, 2)),
-                Plot::Different,
-                Plot::Border,
-                Plot::Border
-            ]
-        );
-
-        assert_eq!(
-            garden.get_plots(&Position::new(2, 2)),
-            vec![
-                Plot::Different,
-                Plot::Same(Position::new(2, 3)),
-                Plot::Same(Position::new(1, 2)),
-                Plot::Different,
-            ]
-        );
-
-        assert_eq!(
-            garden.get_plots(&Position::new(3, 0)),
-            vec![
-                Plot::Same(Position::new(3, 1)),
-                Plot::Different,
-                Plot::Border,
-                Plot::Border
-            ]
-        );
-
-        assert_eq!(
-            garden.get_plots(&Position::new(3, 3)),
-            vec![
-                Plot::Different,
-                Plot::Same(Position::new(2, 3)),
-                Plot::Border,
-                Plot::Border
-            ]
-        );
+    fn create_garden_abab() -> Garden {
+        Garden::new(vec![
+            vec!['A', 'A', 'A', 'A', 'A', 'A'],
+            vec!['A', 'A', 'A', 'B', 'B', 'A'],
+            vec!['A', 'A', 'A', 'B', 'B', 'A'],
+            vec!['A', 'B', 'B', 'A', 'A', 'A'],
+            vec!['A', 'B', 'B', 'A', 'A', 'A'],
+            vec!['A', 'A', 'A', 'A', 'A', 'A'],
+        ])
     }
 
     #[test]
@@ -300,5 +361,67 @@ mod tests {
     fn test_fence_price_complex() {
         let garden = create_garden_complex();
         assert_eq!(garden.fence_price(), 1930);
+    }
+
+    #[test]
+    fn test_area_price_discount() {
+        let input = [
+            // Region A
+            ((Position::new(0, 0)), 16),
+            ((Position::new(0, 1)), 16),
+            ((Position::new(0, 2)), 16),
+            ((Position::new(0, 3)), 16),
+            // Region B
+            ((Position::new(1, 0)), 16),
+            ((Position::new(1, 1)), 16),
+            ((Position::new(2, 0)), 16),
+            ((Position::new(2, 1)), 16),
+            // Region C
+            ((Position::new(1, 2)), 32),
+            ((Position::new(2, 2)), 32),
+            ((Position::new(2, 3)), 32),
+            ((Position::new(3, 3)), 32),
+            // Region D
+            ((Position::new(1, 3)), 4),
+            // Region E
+            ((Position::new(3, 0)), 12),
+            ((Position::new(3, 1)), 12),
+            ((Position::new(3, 2)), 12),
+        ];
+
+        for (pos, price) in input {
+            let garden = create_garden_simple();
+
+            assert_eq!(
+                garden.area_price_discount(&pos),
+                price,
+                "Invalid price for position '{:?}'",
+                pos
+            );
+        }
+    }
+
+    #[test]
+    fn test_fence_price_discount_simple() {
+        let garden = create_garden_simple();
+        assert_eq!(garden.fence_price_discount(), 80);
+    }
+
+    #[test]
+    fn test_fence_price_discount_complex() {
+        let garden = create_garden_complex();
+        assert_eq!(garden.fence_price_discount(), 1206);
+    }
+
+    #[test]
+    fn test_fence_price_discount_e_shaped() {
+        let garden = create_garden_e_shaped();
+        assert_eq!(garden.fence_price_discount(), 236);
+    }
+
+    #[test]
+    fn test_fence_price_discount_abab() {
+        let garden = create_garden_abab();
+        assert_eq!(garden.fence_price_discount(), 368);
     }
 }

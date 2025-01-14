@@ -31,7 +31,8 @@ impl PuzzleSolver for Solver {
     }
 
     fn part_2(&self) -> SolutionResult {
-        Ok(String::from("Not solved"))
+        let price = self.garden.fence_price_discount();
+        Ok(price.to_string())
     }
 }
 
@@ -45,7 +46,7 @@ mod tests {
     use super::*;
 
     const SOLUTION_1: &str = "1421958";
-    const SOLUTION_2: &str = "Not solved";
+    const SOLUTION_2: &str = "885394";
 
     fn get_tester() -> &'static PuzzleTester<Solver> {
         static TESTER: LazyLock<PuzzleTester<Solver>> =
