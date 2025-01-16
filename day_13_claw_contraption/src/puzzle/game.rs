@@ -1,4 +1,5 @@
 use super::claw_machine::ClawMachine;
+use rayon::prelude::*;
 
 #[derive(Default)]
 pub struct Game {
@@ -21,7 +22,7 @@ impl Game {
         // None is returned.
         let tokens = self
             .machines
-            .iter()
+            .par_iter()
             .filter_map(|machine| machine.find_fewest_tokens())
             .collect::<Vec<_>>();
 

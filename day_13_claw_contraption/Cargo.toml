@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 advent-of-code = { git = "https://github.com/palcoo42/advent-of-code.git", tag = "3.0.0" }
 regex = { version="1.11.*" }
+rayon = { version = "1.10.*" }
