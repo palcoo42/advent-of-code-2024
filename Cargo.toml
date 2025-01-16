@@ -12,5 +12,6 @@ members = [
     "day_09_disk_fragmenter",
     "day_10_hoof_it",
     "day_11_plutonian_pebbles",
-    "day_12_garden_groups"
+    "day_12_garden_groups",
+    "day_13_claw_contraption"
 ]

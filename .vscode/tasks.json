@@ -4,7 +4,7 @@
 		{
 			"type": "cargo",
 			"command": "run",
-			"args": [ "--package", "day_12_garden_groups" ],
+			"args": [ "--package", "day_13_claw_contraption" ],
 			"problemMatcher": [
 				"$rustc"
 			],
@@ -18,7 +18,9 @@
 		{
 			"type": "cargo",
 			"command": "test",
-			"args": [ "--package", "day_12_garden_groups" ],
+			"args": [ "--package", "day_13_claw_contraption",
+					  //"--", "--nocapture"
+				    ],
 			"problemMatcher": [
 				"$rustc"
 			],
