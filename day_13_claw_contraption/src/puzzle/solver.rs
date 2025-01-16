@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use advent_of_code::puzzles::{
     puzzle::{PuzzleResult, SolutionResult},
     puzzle_solver::PuzzleSolver,
@@ -6,13 +8,13 @@ use advent_of_code::puzzles::{
 use super::{game::Game, parser::Parser};
 
 pub struct Solver {
-    game: Game,
+    game: RefCell<Game>,
 }
 
 impl PuzzleSolver for Solver {
     fn new() -> Self {
         Self {
-            game: Game::default(),
+            game: RefCell::new(Game::default()),
         }
     }
 
@@ -21,13 +23,14 @@ impl PuzzleSolver for Solver {
     }
 
     fn parse_input_file(&mut self, lines: &[&str]) -> PuzzleResult {
-        self.game = Parser::parse_lines(lines)?;
+        *self.game.borrow_mut() = Parser::parse_lines(lines)?;
         Ok(())
     }
 
     fn part_1(&self) -> SolutionResult {
         let fewest_count = self
             .game
+            .borrow()
             .count_fewest_tokens_to_win_all_prizes()
             .expect("No solution found");
 
@@ -35,7 +38,14 @@ impl PuzzleSolver for Solver {
     }
 
     fn part_2(&self) -> SolutionResult {
-        Ok(String::from("Not solved"))
+        // Find count - use calculation method (fastest)
+        let fewest_count = self
+            .game
+            .borrow()
+            .calculate_fewest_tokens_to_win_all_prizes()
+            .expect("No solution found");
+
+        Ok(fewest_count.to_string())
     }
 }
 
@@ -49,7 +59,7 @@ mod tests {
     use super::*;
 
     const SOLUTION_1: &str = "29877";
-    const SOLUTION_2: &str = "Not solved";
+    const SOLUTION_2: &str = "99423413811305";
 
     fn get_tester() -> &'static PuzzleTester<Solver> {
         static TESTER: LazyLock<PuzzleTester<Solver>> =

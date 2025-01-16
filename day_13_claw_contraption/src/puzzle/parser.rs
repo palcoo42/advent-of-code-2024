@@ -9,30 +9,19 @@ pub struct Parser {}
 
 impl Parser {
     pub fn parse_lines(lines: &[&str]) -> Result<Game, PuzzleError> {
-        let mut game = Game::new();
+        // Create chunks of data per claw machine separated by an empty line
+        let chunks = lines.split(|line| line.is_empty()).collect::<Vec<_>>();
 
-        // Every claw machine is separated by an empty line and contains exactly 3 items
-        let mut claw_machine_raw = Vec::with_capacity(3);
+        let machines: Result<Vec<ClawMachine>, PuzzleError> = chunks
+            .iter()
+            .map(|&chunk| Self::parse_claw_machine(chunk))
+            .collect();
 
-        for &line in lines {
-            match line.is_empty() {
-                false => claw_machine_raw.push(line),
-                true => {
-                    // Parse machine
-                    let machine = Self::parse_claw_machine(&claw_machine_raw)?;
-                    game.push(machine);
-
-                    // Clear content for next machine
-                    claw_machine_raw.clear();
-                }
-            }
-        }
-
-        Ok(game)
+        Ok(Game::new(machines?))
     }
 
     fn parse_claw_machine(lines: &[&str]) -> Result<ClawMachine, PuzzleError> {
-        // Double check correct number of lines
+        // Last record may be without
         if lines.len() != 3 {
             return Err(PuzzleError::InvalidContentError(format!(
                 "Claw machine should contain exactly 3 lines, but {} found",
