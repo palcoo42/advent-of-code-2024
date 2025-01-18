@@ -112,7 +112,7 @@ impl TopographicMap {
 
     fn count_trail_head_rating(topographic_map: &TopographicMap, trail_head: &Position) -> usize {
         let solutions = Self::find_trail_head_solutions(topographic_map, trail_head);
-        solutions.values().map(|count| *count).sum()
+        solutions.values().copied().sum()
     }
 }
 

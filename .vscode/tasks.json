@@ -4,7 +4,7 @@
 		{
 			"type": "cargo",
 			"command": "run",
-			"args": [ "--package", "day_13_claw_contraption" ],
+			"args": [ "--package", "day_14_restroom_redoubt" ],
 			"problemMatcher": [
 				"$rustc"
 			],
@@ -18,7 +18,7 @@
 		{
 			"type": "cargo",
 			"command": "test",
-			"args": [ "--package", "day_13_claw_contraption",
+			"args": [ "--package", "day_14_restroom_redoubt",
 					  //"--", "--nocapture"
 				    ],
 			"problemMatcher": [
