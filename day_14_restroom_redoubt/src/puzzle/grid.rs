@@ -1,8 +1,16 @@
-use std::cell::RefCell;
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    fs::{self, File},
+    io::Write,
+    path::Path,
+};
+
+use advent_of_code::puzzles::puzzle_error::PuzzleError;
 
 use super::{position::Position, quadrant::Quadrant, robot::Robot};
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Grid {
     rows: usize,
     cols: usize,
@@ -85,7 +93,7 @@ impl Grid {
     }
 
     #[allow(dead_code)]
-    fn print(&self) {
+    pub fn print(&self) {
         for r in 0..self.rows {
             for c in 0..self.cols {
                 match self.count(r, c) {
@@ -103,6 +111,85 @@ impl Grid {
             .iter()
             .filter(|&r| r.get_position() == &Position { x: col, y: row })
             .count()
+    }
+
+    pub fn print_to_file(&self, path: &Path) -> Result<(), PuzzleError> {
+        // Create file for writing
+        let mut file = File::create(path).map_err(|err| {
+            PuzzleError::GenericError(format!(
+                "Failed to create a file '{:?}' with and error '{}'",
+                path, err
+            ))
+        })?;
+
+        for r in 0..self.rows {
+            for c in 0..self.cols {
+                let character = match self.count(r, c) {
+                    0 => '.',
+                    _ => '#',
+                };
+
+                write!(file, "{}", character).map_err(|err| {
+                    PuzzleError::GenericError(format!(
+                        "Failed to write to file '{:?}' with an error '{}'",
+                        path, err,
+                    ))
+                })?;
+            }
+
+            writeln!(file).map_err(|err| {
+                PuzzleError::GenericError(format!(
+                    "Failed to write to file '{:?}' with an error '{}'",
+                    path, err,
+                ))
+            })?;
+        }
+
+        Ok(())
+    }
+
+    pub fn find_possible_christmas_trees(
+        &self,
+        path: &Path,
+        max: usize,
+    ) -> Result<(), PuzzleError> {
+        // Create directory structure if it does not exist yet
+        fs::create_dir_all(path).map_err(|err| {
+            PuzzleError::GenericError(format!(
+                "Failed to create directory structure '{:?}' with an error '{}'",
+                path, err
+            ))
+        })?;
+
+        // Create text files with images
+        for seconds in 1..max {
+            // Move always only by a single step
+            self.move_robots(1);
+
+            // Print to a file
+            if self.is_possible_christmas_tree() {
+                let file = path.join(format!("{:04}.txt", seconds));
+                self.print_to_file(&file)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn is_possible_christmas_tree(&self) -> bool {
+        // If we have more than cca 33% of robots in a row this is interesting grid to check
+        let limit: usize = self.cols / 3;
+
+        let mut counts = HashMap::new();
+
+        for robot in self.robots.borrow().iter() {
+            let position = robot.get_position();
+
+            let count = counts.entry(position.x).or_insert(0);
+            *count += 1;
+        }
+
+        counts.iter().any(|(_, count)| count >= &limit)
     }
 }
 

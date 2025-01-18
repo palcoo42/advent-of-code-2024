@@ -1,3 +1,5 @@
+use std::{cell::RefCell, path::Path};
+
 use advent_of_code::puzzles::{
     puzzle::{PuzzleResult, SolutionResult},
     puzzle_solver::PuzzleSolver,
@@ -6,13 +8,15 @@ use advent_of_code::puzzles::{
 use super::{grid::Grid, parser::Parser};
 
 pub struct Solver {
-    grid: Grid,
+    grid: RefCell<Grid>,
+    original: Grid,
 }
 
 impl PuzzleSolver for Solver {
     fn new() -> Self {
         Self {
-            grid: Grid::default(),
+            grid: RefCell::new(Grid::default()),
+            original: Grid::default(),
         }
     }
 
@@ -21,17 +25,28 @@ impl PuzzleSolver for Solver {
     }
 
     fn parse_input_file(&mut self, lines: &[&str]) -> PuzzleResult {
-        self.grid = Parser::parse_lines(lines)?;
+        self.original = Parser::parse_lines(lines)?;
+        self.grid = RefCell::new(self.original.clone());
         Ok(())
     }
 
     fn part_1(&self) -> SolutionResult {
-        let safety_factor = self.grid.safety_factor(100);
+        let safety_factor = self.grid.borrow().safety_factor(100);
         Ok(safety_factor.to_string())
     }
 
     fn part_2(&self) -> SolutionResult {
-        Ok(String::from("Not solved"))
+        // Restore grid because part 1 changed it
+        *self.grid.borrow_mut() = self.original.clone();
+
+        self.grid
+            .borrow()
+            .find_possible_christmas_trees(Path::new("/tmp/aoc-2024/day-14"), 10000)?;
+
+        Ok(
+            "Look for candidates under the directory '/tmp/aoc-2024/day-14' and find a solution"
+                .to_string(),
+        )
     }
 }
 
@@ -59,8 +74,9 @@ mod tests {
         get_tester().test_part_1();
     }
 
-    #[test]
-    fn test_part_2() {
-        get_tester().test_part_2();
-    }
+    // Note: Commented out because solution has to be found manually from generated grids
+    // #[test]
+    // fn test_part_2() {
+    //     get_tester().test_part_2();
+    // }
 }
