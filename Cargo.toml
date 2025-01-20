@@ -14,5 +14,6 @@ members = [
     "day_11_plutonian_pebbles",
     "day_12_garden_groups",
     "day_13_claw_contraption",
-    "day_14_restroom_redoubt"
+    "day_14_restroom_redoubt",
+    "day_15_warehouse_woes"
 ]
