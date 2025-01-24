@@ -4,7 +4,7 @@
 		{
 			"type": "cargo",
 			"command": "run",
-			"args": [ "--package", "day_15_warehouse_woes" ],
+			"args": [ "--package", "day_16_reindeer_maze" ],
 			"problemMatcher": [
 				"$rustc"
 			],
@@ -18,7 +18,7 @@
 		{
 			"type": "cargo",
 			"command": "test",
-			"args": [ "--package", "day_15_warehouse_woes",
+			"args": [ "--package", "day_16_reindeer_maze",
 					  //"--", "--nocapture"
 				    ],
 			"problemMatcher": [
