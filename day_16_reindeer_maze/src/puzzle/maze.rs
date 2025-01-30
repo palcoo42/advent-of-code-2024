@@ -1,7 +1,7 @@
 use core::panic;
 use std::{
-    cmp::Reverse,
-    collections::{HashMap, HashSet},
+    cmp::{Ordering, Reverse},
+    collections::{HashMap, HashSet, VecDeque},
 };
 
 use advent_of_code::puzzles::puzzle_error::PuzzleError;
@@ -26,7 +26,7 @@ impl Maze {
 
     pub fn find_lowest_score(&self) -> Result<usize, PuzzleError> {
         let (lowest_score, _path) = self.dijkstra_lowest_score()?;
-        // self.print(&_path);
+        // self.print(&_path, None);
         Ok(lowest_score)
     }
 
@@ -174,22 +174,17 @@ impl Maze {
     }
 
     #[allow(unused)]
-    fn print(&self, steps: &[(Point, Direction)]) {
+    fn print(&self, steps: &[Point]) {
         for y in 0..self.rows {
             for x in 0..self.cols {
                 // In case of empty tile show direction if tile was visited
-                let character = match self.maze[x][y] {
+                let character = match self.maze[y][x] {
                     Tile::Empty => match steps
                         .iter()
-                        .find(|(point, dir)| point.x == x as isize && point.y == y as isize)
+                        .find(|point| point.x == x as isize && point.y == y as isize)
                     {
                         None => '.',
-                        Some((step, dir)) => match dir {
-                            Direction::East => '>',
-                            Direction::South => 'v',
-                            Direction::West => '<',
-                            Direction::North => '^',
-                        },
+                        Some(_) => 'O',
                     },
                     Tile::Wall => '#',
                     Tile::Start => 'S',
@@ -200,6 +195,150 @@ impl Maze {
             }
             println!();
         }
+    }
+
+    pub fn find_all_paths(&self) -> Result<usize, PuzzleError> {
+        let solution = self.dijkstra_all_paths()?;
+        // self.print(&solution);
+        // Note: Returned vector already contains unique items
+        Ok(solution.len())
+    }
+
+    // Run Modified Dijkstra algorithm to find all paths from Start to End
+    fn dijkstra_all_paths(&self) -> Result<Vec<Point>, PuzzleError> {
+        let mut lowest_score = usize::MAX;
+        let (start, end) = self.get_start_and_end()?;
+
+        let mut nodes = HashMap::new();
+        let mut visited = HashSet::new();
+        let mut queue = PriorityQueue::new();
+
+        nodes.insert((start, Direction::East), (0, vec![]));
+        queue.push((start, Direction::East, 0), Reverse(0));
+
+        while let Some(((point, direction, score), _)) = queue.pop() {
+            if visited.contains(&(point, direction)) {
+                continue;
+            }
+
+            visited.insert((point, direction));
+
+            // Check for a solution
+            if point == end {
+                match score.cmp(&lowest_score) {
+                    Ordering::Less => {
+                        // New shortest path
+                        lowest_score = score;
+                    }
+                    Ordering::Equal | Ordering::Greater => {
+                        // Nothing to do
+                    }
+                }
+
+                // Continue to find all paths
+                continue;
+            }
+
+            // Analyze neighbors
+            let next_states = [
+                (point.neighbor(direction), direction, score + FORWARD_SCORE),
+                (point, direction.get_left(), score + ROTATE_SCORE),
+                (point, direction.get_right(), score + ROTATE_SCORE),
+            ];
+
+            // Update states which are valid:
+            // - point is within maze borders
+            // - next_score < current score
+            for (next_point, next_direction, next_score) in next_states {
+                // Add next state for further analysis only if next point/direction are valid
+                if !visited.contains(&(next_point, next_direction))
+                    && self.is_point_within_maze(&point)
+                    && self.get_tile(&next_point) != &Tile::Wall
+                {
+                    queue.push(
+                        (next_point, next_direction, next_score),
+                        Reverse(next_score),
+                    );
+                }
+
+                // If point/direction is not yet visited use as a current_score 'INFINITE'
+                let current_score = nodes
+                    .entry((next_point, next_direction))
+                    .or_insert((usize::MAX, vec![]));
+
+                // Update current score if next score is smaller for given point
+                match next_score.cmp(&current_score.0) {
+                    Ordering::Less => {
+                        // Update score
+                        current_score.0 = next_score;
+                        current_score.1 = vec![(point, direction)];
+
+                        // Update priority of node in the queue
+                        queue.change_priority(
+                            &(next_point, next_direction, next_score),
+                            Reverse(next_score),
+                        );
+                    }
+                    Ordering::Equal => {
+                        // Update score
+                        current_score.1.push((point, direction));
+
+                        // Update priority of node in the queue
+                        queue.change_priority(
+                            &(next_point, next_direction, next_score),
+                            Reverse(next_score),
+                        );
+                    }
+                    Ordering::Greater => {}
+                }
+            }
+        }
+
+        // Backtrack - Go from End node and collect back all parent nodes
+        let minimal_costs = nodes
+            .iter()
+            .filter_map(|((point, direction), (cost, parents))| {
+                if point == &end && cost == &lowest_score {
+                    Some((*point, *direction, parents.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let mut seen = HashSet::new();
+        let mut queue = VecDeque::new();
+
+        for (point, _, parents) in minimal_costs {
+            for (_, parent_direction) in parents {
+                queue.push_back((point, parent_direction));
+            }
+        }
+
+        while let Some((point, direction)) = queue.pop_front() {
+            if seen.contains(&(point, direction)) {
+                continue;
+            }
+
+            seen.insert((point, direction));
+
+            // Fetch node parents
+            let (_, parents) = nodes
+                .get(&(point, direction))
+                .unwrap_or_else(|| panic!("Failed to find '{:?}:{:?}' in nodes", point, direction));
+
+            for (parent_point, parent_direction) in parents {
+                queue.push_back((*parent_point, *parent_direction))
+            }
+        }
+
+        // Collect only unique point, i.e. ignore direction
+        let unique_points = seen
+            .into_iter()
+            .map(|(point, _)| point)
+            .collect::<HashSet<_>>();
+
+        Ok(unique_points.into_iter().collect::<Vec<_>>())
     }
 }
 
@@ -281,5 +420,23 @@ mod tests {
 
         assert!(result.is_ok(), "result: {:?}", result);
         assert_eq!(result.unwrap(), 11048);
+    }
+
+    #[test]
+    fn test_find_all_paths_small_maze() {
+        let maze = build_small_maze();
+        let result = maze.find_all_paths();
+
+        assert!(result.is_ok(), "result: {:?}", result);
+        assert_eq!(result.unwrap(), 45);
+    }
+
+    #[test]
+    fn test_find_all_paths_large_maze() {
+        let maze = build_large_maze();
+        let result = maze.find_all_paths();
+
+        assert!(result.is_ok(), "result: {:?}", result);
+        assert_eq!(result.unwrap(), 64);
     }
 }

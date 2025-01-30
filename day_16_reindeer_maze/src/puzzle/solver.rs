@@ -31,7 +31,8 @@ impl PuzzleSolver for Solver {
     }
 
     fn part_2(&self) -> SolutionResult {
-        Ok(String::from("Not solved"))
+        let tiles_count = self.maze.find_all_paths()?;
+        Ok(tiles_count.to_string())
     }
 }
 
@@ -45,7 +46,7 @@ mod tests {
     use super::*;
 
     const SOLUTION_1: &str = "101492";
-    const SOLUTION_2: &str = "Not solved";
+    const SOLUTION_2: &str = "543";
 
     fn get_tester() -> &'static PuzzleTester<Solver> {
         static TESTER: LazyLock<PuzzleTester<Solver>> =
