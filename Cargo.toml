@@ -16,5 +16,6 @@ members = [
     "day_13_claw_contraption",
     "day_14_restroom_redoubt",
     "day_15_warehouse_woes",
-    "day_16_reindeer_maze"
+    "day_16_reindeer_maze",
+    "day_17_chronospatial_computer"
 ]
