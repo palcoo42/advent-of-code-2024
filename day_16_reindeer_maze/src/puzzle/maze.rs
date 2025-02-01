@@ -4,29 +4,28 @@ use std::{
     collections::{HashMap, HashSet, VecDeque},
 };
 
-use advent_of_code::puzzles::puzzle_error::PuzzleError;
+use advent_of_code::{
+    grids::{direction::Direction, grid::Grid, point::Point},
+    puzzles::puzzle_error::PuzzleError,
+};
 use priority_queue::PriorityQueue;
-
-use super::{direction::Direction, point::Point, tile::Tile};
 
 const FORWARD_SCORE: usize = 1;
 const ROTATE_SCORE: usize = 1000;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Maze {
-    rows: usize,
-    cols: usize,
-    maze: Vec<Vec<Tile>>,
+    grid: Grid,
 }
 
 impl Maze {
-    pub fn new(rows: usize, cols: usize, maze: Vec<Vec<Tile>>) -> Self {
-        Self { rows, cols, maze }
+    pub fn new(grid: Grid) -> Self {
+        Self { grid }
     }
 
     pub fn find_lowest_score(&self) -> Result<usize, PuzzleError> {
         let (lowest_score, _path) = self.dijkstra_lowest_score()?;
-        // self.print(&_path, None);
+        // self.grid.print();
         Ok(lowest_score)
     }
 
@@ -92,8 +91,8 @@ impl Maze {
             // - in the same cell rotated in clockwise direction with the cost 1000
             let next_states = [
                 (point.neighbor(direction), direction, score + FORWARD_SCORE),
-                (point, direction.get_left(), score + ROTATE_SCORE),
-                (point, direction.get_right(), score + ROTATE_SCORE),
+                (point, direction.left(), score + ROTATE_SCORE),
+                (point, direction.right(), score + ROTATE_SCORE),
             ];
 
             // Update states which are valid:
@@ -102,8 +101,8 @@ impl Maze {
             for (next_point, next_direction, next_score) in next_states {
                 // Add next state for further analysis only if next point/direction are valid
                 if !visited.contains(&(next_point, next_direction))
-                    && self.is_point_within_maze(&point)
-                    && self.get_tile(&next_point) != &Tile::Wall
+                    && self.grid.is_point_in_grid(&point)
+                    && self.grid[next_point] != '#'
                 {
                     queue.push((next_point, next_direction), Reverse(next_score));
                 }
@@ -130,76 +129,24 @@ impl Maze {
         ))
     }
 
-    #[inline]
-    fn is_point_within_maze(&self, point: &Point) -> bool {
-        point.x >= 0 && point.x < self.cols as isize && point.y >= 0 && point.y < self.rows as isize
-    }
-
-    #[inline]
-    fn get_tile(&self, point: &Point) -> &Tile {
-        &self.maze[point.y as usize][point.x as usize]
-    }
-
     fn get_start_and_end(&self) -> Result<(Point, Point), PuzzleError> {
-        let mut start = None;
-        let mut end = None;
+        let start = self.grid.get_all_values('S');
+        let end = self.grid.get_all_values('E');
 
-        for i in 0..self.rows {
-            for j in 0..self.cols {
-                match self.maze[i][j] {
-                    Tile::Start => {
-                        start = Some(Point {
-                            x: j as isize,
-                            y: i as isize,
-                        });
-                    }
-                    Tile::End => {
-                        end = Some(Point {
-                            x: j as isize,
-                            y: i as isize,
-                        });
-                    }
-                    _ => {}
-                }
-            }
+        if start.is_empty() || end.is_empty() || start.len() > 1 || end.len() > 1 {
+            return Err(PuzzleError::GenericError(format!(
+                "Exactly one Start/End point expected, but found '{:?}' and '{:?}'",
+                start.len(),
+                end.len()
+            )));
         }
 
-        match (start, end) {
-            (Some(s), Some(e)) => Ok((s, e)),
-            _ => Err(PuzzleError::GenericError(format!(
-                "Failed to find Start '{:?}' and/or End '{:?}'",
-                start, end
-            ))),
-        }
-    }
-
-    #[allow(unused)]
-    fn print(&self, steps: &[Point]) {
-        for y in 0..self.rows {
-            for x in 0..self.cols {
-                // In case of empty tile show direction if tile was visited
-                let character = match self.maze[y][x] {
-                    Tile::Empty => match steps
-                        .iter()
-                        .find(|point| point.x == x as isize && point.y == y as isize)
-                    {
-                        None => '.',
-                        Some(_) => 'O',
-                    },
-                    Tile::Wall => '#',
-                    Tile::Start => 'S',
-                    Tile::End => 'E',
-                };
-
-                print!("{}", character);
-            }
-            println!();
-        }
+        Ok((start[0], end[0]))
     }
 
     pub fn find_all_paths(&self) -> Result<usize, PuzzleError> {
         let solution = self.dijkstra_all_paths()?;
-        // self.print(&solution);
+        // self.grid.print_with_visited(&solution);
         // Note: Returned vector already contains unique items
         Ok(solution.len())
     }
@@ -242,8 +189,8 @@ impl Maze {
             // Analyze neighbors
             let next_states = [
                 (point.neighbor(direction), direction, score + FORWARD_SCORE),
-                (point, direction.get_left(), score + ROTATE_SCORE),
-                (point, direction.get_right(), score + ROTATE_SCORE),
+                (point, direction.left(), score + ROTATE_SCORE),
+                (point, direction.right(), score + ROTATE_SCORE),
             ];
 
             // Update states which are valid:
@@ -252,8 +199,8 @@ impl Maze {
             for (next_point, next_direction, next_score) in next_states {
                 // Add next state for further analysis only if next point/direction are valid
                 if !visited.contains(&(next_point, next_direction))
-                    && self.is_point_within_maze(&point)
-                    && self.get_tile(&next_point) != &Tile::Wall
+                    && self.grid.is_point_in_grid(&point)
+                    && self.grid[next_point] != '#'
                 {
                     queue.push(
                         (next_point, next_direction, next_score),
@@ -392,16 +339,6 @@ mod tests {
         ];
 
         Parser::parse_lines(&maze).expect("Failed to build Maze")
-    }
-
-    #[test]
-    fn test_maze_build() {
-        let maze = build_small_maze();
-
-        assert_eq!(maze.rows, 15);
-        assert_eq!(maze.cols, 15);
-        assert_eq!(maze.maze[13][1], Tile::Start);
-        assert_eq!(maze.maze[1][13], Tile::End);
     }
 
     #[test]
