@@ -1,7 +1,6 @@
 use std::{
     cmp::Reverse,
     collections::{HashMap, HashSet},
-    usize,
 };
 
 use advent_of_code::{
@@ -23,10 +22,10 @@ impl Ram {
     pub fn count_minimum_steps(
         &self,
         corrupted: &[Point],
-        corrupted_bytes: usize,
+        corrupted_bytes_count: usize,
     ) -> Result<usize, PuzzleError> {
         // Prepare grid with corrupted bytes '#'
-        let grid = self.corrupt_ram(corrupted, corrupted_bytes)?;
+        let grid = self.corrupt_ram(&corrupted[0..corrupted_bytes_count])?;
 
         let minimum_path = Self::dijkstra_minimum_path(
             &grid,
@@ -40,26 +39,20 @@ impl Ram {
         match minimum_path {
             Some((shortest_steps, _path)) => {
                 // grid.print_with_visited(&_path);
-
                 Ok(shortest_steps)
             }
 
             None => Err(PuzzleError::GenericError(
-                "Failed to find minimum path".to_string(),
+                "Failed to find shortest path".to_string(),
             )),
         }
     }
 
-    fn corrupt_ram(
-        &self,
-        corrupted: &[Point],
-        corrupted_bytes: usize,
-    ) -> Result<Grid, PuzzleError> {
+    fn corrupt_ram(&self, corrupted: &[Point]) -> Result<Grid, PuzzleError> {
         // Prepare grid with corrupted bytes, take into account number of 'fallen_bytes'
         // Fallen point is marked with '#'
         let corrupted_bytes = corrupted
             .iter()
-            .take(corrupted_bytes)
             .map(|point| (*point, '#'))
             .collect::<Vec<_>>();
 
@@ -165,6 +158,53 @@ impl Ram {
 
         path
     }
+
+    pub fn find_first_falling_byte(
+        &self,
+        corrupted: &[Point],
+        corrupted_bytes: usize,
+    ) -> Result<Point, PuzzleError> {
+        // Use binary algorithm to speed up
+        let mut falling_byte: Option<usize> = None;
+        let mut left = corrupted_bytes; // Include already corrupted bytes
+        let mut right = corrupted.len();
+
+        while left < right {
+            // Corrupt RAM
+            let middle = left + (right - left) / 2;
+
+            // Note: 0..=middle includes as corrupted also 'middle' point as we check middle now
+            let grid = self.corrupt_ram(&corrupted[0..=middle])?;
+
+            // Analyze result
+            match Self::dijkstra_path_found(&grid) {
+                true => {
+                    // There is still a path
+                    left = middle + 1;
+                }
+                false => {
+                    // Path is blocked
+                    right = middle;
+                    falling_byte = Some(middle);
+                }
+            }
+        }
+
+        falling_byte
+            .map(|index| corrupted[index])
+            .ok_or_else(|| PuzzleError::GenericError("Solution not found".to_string()))
+    }
+
+    fn dijkstra_path_found(grid: &Grid) -> bool {
+        // Create start and end points
+        let start = Point { x: 0, y: 0 };
+        let end = Point {
+            x: grid.cols() as isize - 1,
+            y: grid.rows() as isize - 1,
+        };
+
+        Self::dijkstra_minimum_path(grid, start, end).is_some()
+    }
 }
 
 #[cfg(test)]
@@ -212,5 +252,15 @@ mod tests {
 
         assert!(result.is_ok(), "result: {:?}", result);
         assert_eq!(result.unwrap(), 22);
+    }
+
+    #[test]
+    fn test_find_first_falling_byte() {
+        let (ram, corrupted) = build_ram();
+
+        let result = ram.find_first_falling_byte(&corrupted, 12);
+
+        assert!(result.is_ok(), "result: {:?}", result);
+        assert_eq!(result.unwrap(), Point { x: 6, y: 1 });
     }
 }

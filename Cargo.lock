@@ -23,6 +23,7 @@ dependencies = [
 [[package]]
 name = "advent-of-code"
 version = "4.1.3"
+source = "git+https://github.com/palcoo42/advent-of-code.git?tag=4.1.3#e2706fd34967356d7c8f7bf02db352b9b418ade4"
 dependencies = [
  "indicatif",
  "temp-env",

@@ -47,7 +47,11 @@ impl PuzzleSolver for Solver {
     }
 
     fn part_2(&self) -> SolutionResult {
-        Ok(String::from(""))
+        let falling_byte = self
+            .ram
+            .find_first_falling_byte(&self.corrupted, CORRUPTED_BYTES)?;
+
+        Ok(format!("{},{}", falling_byte.x, falling_byte.y))
     }
 }
 
@@ -61,7 +65,7 @@ mod tests {
     use super::*;
 
     const SOLUTION_1: &str = "330";
-    const SOLUTION_2: &str = "Not solved";
+    const SOLUTION_2: &str = "10,38";
 
     fn get_tester() -> &'static PuzzleTester<Solver> {
         static TESTER: LazyLock<PuzzleTester<Solver>> =
@@ -75,8 +79,8 @@ mod tests {
         get_tester().test_part_1();
     }
 
-    // #[test]
-    // fn test_part_2() {
-    //     get_tester().test_part_2();
-    // }
+    #[test]
+    fn test_part_2() {
+        get_tester().test_part_2();
+    }
 }
