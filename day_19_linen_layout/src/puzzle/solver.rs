@@ -26,12 +26,13 @@ impl PuzzleSolver for Solver {
     }
 
     fn part_1(&self) -> SolutionResult {
-        let possible_designs_count = self.designer.find_solutions();
-        Ok(possible_designs_count.to_string())
+        let solutions = self.designer.count_unique_solutions();
+        Ok(solutions.to_string())
     }
 
     fn part_2(&self) -> SolutionResult {
-        Ok(String::from(""))
+        let solutions = self.designer.count_all_solutions();
+        Ok(solutions.to_string())
     }
 }
 
@@ -45,7 +46,7 @@ mod tests {
     use super::*;
 
     const SOLUTION_1: &str = "255";
-    const SOLUTION_2: &str = "Not solved";
+    const SOLUTION_2: &str = "621820080273474";
 
     fn get_tester() -> &'static PuzzleTester<Solver> {
         static TESTER: LazyLock<PuzzleTester<Solver>> =
@@ -59,8 +60,8 @@ mod tests {
         get_tester().test_part_1();
     }
 
-    // #[test]
-    // fn test_part_2() {
-    //     get_tester().test_part_2();
-    // }
+    #[test]
+    fn test_part_2() {
+        get_tester().test_part_2();
+    }
 }

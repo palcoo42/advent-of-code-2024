@@ -11,7 +11,7 @@ impl Designer {
         Self { patterns, words }
     }
 
-    pub fn find_solutions(&self) -> usize {
+    pub fn count_unique_solutions(&self) -> usize {
         let mut cache = HashMap::new();
         let mut solutions = 0;
 
@@ -20,6 +20,17 @@ impl Designer {
             if sol > 0 {
                 solutions += 1;
             }
+        }
+
+        solutions
+    }
+
+    pub fn count_all_solutions(&self) -> usize {
+        let mut cache = HashMap::new();
+        let mut solutions = 0;
+
+        for word in &self.words {
+            solutions += self.count_solutions(word, &mut cache);
         }
 
         solutions
@@ -79,9 +90,28 @@ mod tests {
     }
 
     #[test]
-    fn test_count_possible_designs() {
+    fn test_count_unique_solutions() {
+        let designer = build_designer();
+        assert_eq!(designer.count_unique_solutions(), 6);
+    }
+
+    #[test]
+    fn test_count_solutions() {
         let designer = build_designer();
 
-        assert_eq!(designer.find_solutions(), 6);
+        assert_eq!(designer.count_solutions("brwrr", &mut HashMap::new()), 2);
+        assert_eq!(designer.count_solutions("bggr", &mut HashMap::new()), 1);
+        assert_eq!(designer.count_solutions("gbbr", &mut HashMap::new()), 4);
+        assert_eq!(designer.count_solutions("rrbgbr", &mut HashMap::new()), 6);
+        assert_eq!(designer.count_solutions("bwurrg", &mut HashMap::new()), 1);
+        assert_eq!(designer.count_solutions("brgr", &mut HashMap::new()), 2);
+        assert_eq!(designer.count_solutions("ubwu", &mut HashMap::new()), 0);
+        assert_eq!(designer.count_solutions("bbrgwb", &mut HashMap::new()), 0);
+    }
+
+    #[test]
+    fn test_count_all_solutions() {
+        let designer = build_designer();
+        assert_eq!(designer.count_all_solutions(), 16);
     }
 }
