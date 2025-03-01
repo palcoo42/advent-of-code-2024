@@ -17,12 +17,16 @@ impl Race {
         Self { grid }
     }
 
-    pub fn count_cheats(&self, picoseconds: usize) -> Result<usize, PuzzleError> {
+    pub fn count_cheats(
+        &self,
+        picoseconds: usize,
+        cheat_steps: isize,
+    ) -> Result<usize, PuzzleError> {
         // Build path to the destination
         let (start, end) = self.get_start_end()?;
         let path = self.get_path(&start, &end)?;
 
-        let cheats = self.collect_cheats(&path)?;
+        let cheats = self.collect_cheats(&path, cheat_steps)?;
 
         // Count number of cheats whose saved more than "picoseconds"
         let count = cheats
@@ -93,17 +97,31 @@ impl Race {
         Ok((start[0], end[0]))
     }
 
-    fn collect_cheats(&self, path: &Path) -> Result<HashMap<isize, Vec<Cheat>>, PuzzleError> {
+    fn collect_cheats(
+        &self,
+        path: &Path,
+        cheat_steps: isize,
+    ) -> Result<HashMap<isize, Vec<Cheat>>, PuzzleError> {
         let mut cheats = HashMap::new();
+        let mut visited = HashSet::new();
 
         // Investigate only points which are in the path
         for (current_point, current_distance) in path.iter() {
             // Fetch cheats for current point
-            let valid_cheats = self.get_valid_cheats(current_point, path);
+            let valid_cheats = self.get_valid_cheats(current_point, path, cheat_steps);
 
             for cheat in valid_cheats {
+                // Skip already processed cheats
+                if visited.contains(&cheat) {
+                    continue;
+                }
+
+                visited.insert(cheat.clone());
+
                 if let Some(end_distance) = path.get(&cheat.end) {
-                    let saved = end_distance as isize - *current_distance as isize - 2;
+                    let saved = end_distance as isize
+                        - *current_distance as isize
+                        - Self::get_manhattan(&cheat.start, &cheat.end) as isize;
 
                     // Append cheat to correct "saved" slot
                     let saved_cheats = cheats.entry(saved).or_insert(vec![]);
@@ -115,39 +133,25 @@ impl Race {
         Ok(cheats)
     }
 
-    fn get_valid_cheats(&self, point: &Point, path: &Path) -> Vec<Cheat> {
-        const STEPS: isize = 2;
+    fn get_valid_cheats(&self, point: &Point, path: &Path, cheat_steps: isize) -> Vec<Cheat> {
+        let mut cheats = Vec::new();
 
-        let cheats = vec![
-            Cheat {
-                start: *point,
-                end: Point {
-                    x: point.x + STEPS,
-                    y: point.y,
-                },
-            },
-            Cheat {
-                start: *point,
-                end: Point {
-                    x: point.x - STEPS,
-                    y: point.y,
-                },
-            },
-            Cheat {
-                start: *point,
-                end: Point {
-                    x: point.x,
-                    y: point.y + STEPS,
-                },
-            },
-            Cheat {
-                start: *point,
-                end: Point {
-                    x: point.x,
-                    y: point.y - STEPS,
-                },
-            },
-        ];
+        for x in -cheat_steps..=cheat_steps {
+            for y in -cheat_steps..=cheat_steps {
+                // Use only cheats with steps less than allowed value
+                let cheat = Cheat {
+                    start: *point,
+                    end: Point {
+                        x: point.x + x,
+                        y: point.y + y,
+                    },
+                };
+
+                if Self::get_manhattan(&cheat.start, &cheat.end) as isize <= cheat_steps {
+                    cheats.push(cheat);
+                }
+            }
+        }
 
         // Valid cheat is when:
         // - End point is in a grid
@@ -158,6 +162,10 @@ impl Race {
                 self.grid.is_point_in_grid(&cheat.end) && path.get(&cheat.end).is_some()
             })
             .collect()
+    }
+
+    fn get_manhattan(a: &Point, b: &Point) -> usize {
+        a.x.abs_diff(b.x) + a.y.abs_diff(b.y)
     }
 }
 
@@ -223,11 +231,11 @@ mod tests {
     }
 
     #[test]
-    fn test_collect_cheats() {
+    fn test_collect_cheats_2_steps() {
         let race = build_race();
         let (_, _, path) = build_path_from_race(&race);
 
-        let result = race.collect_cheats(&path);
+        let result = race.collect_cheats(&path, 2);
         assert!(result.is_ok(), "result: {:?}", result);
 
         let cheats = result.unwrap();
@@ -243,5 +251,31 @@ mod tests {
         assert_eq!(cheats.get(&38).unwrap().len(), 1);
         assert_eq!(cheats.get(&40).unwrap().len(), 1);
         assert_eq!(cheats.get(&64).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn test_collect_cheats_20_steps() {
+        let race = build_race();
+        let (_, _, path) = build_path_from_race(&race);
+
+        let result = race.collect_cheats(&path, 20);
+        assert!(result.is_ok(), "result: {:?}", result);
+
+        let cheats = result.unwrap();
+
+        assert_eq!(cheats.get(&50).unwrap().len(), 32);
+        assert_eq!(cheats.get(&52).unwrap().len(), 31);
+        assert_eq!(cheats.get(&54).unwrap().len(), 29);
+        assert_eq!(cheats.get(&56).unwrap().len(), 39);
+        assert_eq!(cheats.get(&58).unwrap().len(), 25);
+        assert_eq!(cheats.get(&60).unwrap().len(), 23);
+        assert_eq!(cheats.get(&62).unwrap().len(), 20);
+        assert_eq!(cheats.get(&64).unwrap().len(), 19);
+        assert_eq!(cheats.get(&66).unwrap().len(), 12);
+        assert_eq!(cheats.get(&68).unwrap().len(), 14);
+        assert_eq!(cheats.get(&70).unwrap().len(), 12);
+        assert_eq!(cheats.get(&72).unwrap().len(), 22);
+        assert_eq!(cheats.get(&74).unwrap().len(), 4);
+        assert_eq!(cheats.get(&76).unwrap().len(), 3);
     }
 }

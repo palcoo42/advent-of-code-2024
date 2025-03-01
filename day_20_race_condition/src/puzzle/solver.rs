@@ -26,12 +26,13 @@ impl PuzzleSolver for Solver {
     }
 
     fn part_1(&self) -> SolutionResult {
-        let count = self.race.count_cheats(100)?;
+        let count = self.race.count_cheats(100, 2)?;
         Ok(count.to_string())
     }
 
     fn part_2(&self) -> SolutionResult {
-        Ok(String::from(""))
+        let count = self.race.count_cheats(100, 20)?;
+        Ok(count.to_string())
     }
 }
 
@@ -45,7 +46,7 @@ mod tests {
     use super::*;
 
     const SOLUTION_1: &str = "1497";
-    const SOLUTION_2: &str = "Not solved";
+    const SOLUTION_2: &str = "1030809";
 
     fn get_tester() -> &'static PuzzleTester<Solver> {
         static TESTER: LazyLock<PuzzleTester<Solver>> =
@@ -59,8 +60,8 @@ mod tests {
         get_tester().test_part_1();
     }
 
-    // #[test]
-    // fn test_part_2() {
-    //     get_tester().test_part_2();
-    // }
+    #[test]
+    fn test_part_2() {
+        get_tester().test_part_2();
+    }
 }
