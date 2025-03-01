@@ -19,5 +19,6 @@ members = [
     "day_16_reindeer_maze",
     "day_17_chronospatial_computer",
     "day_18_ram_run",
-    "day_19_linen_layout"
+    "day_19_linen_layout",
+    "day_20_race_condition"
 ]
